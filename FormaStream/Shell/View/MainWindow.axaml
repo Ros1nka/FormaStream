@@ -1,0 +1,135 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FormaStream.Shell.ViewModels"
+        xmlns:views="using:FormaStream.Shell.View"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="using:Avalonia.Xaml.Interactivity"
+        xmlns:beh="using:FormaStream.Behaviors"
+        xmlns:behaviors="clr-namespace:ClisheFlow.Behaviors"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="FormaStream.Shell.View.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="FormaStream — Управление производством"
+        WindowState="Normal"
+        WindowDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        TransparencyLevelHint="Mica">
+
+    <Window.Styles>
+        <Style Selector="ContentControl">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+    </Window.Styles>
+
+    <Window.DataTemplates>
+        <DataTemplate DataType="vm:ArchiveViewModel">
+            <views:Archive DataContext="{Binding}" />
+        </DataTemplate>
+        <DataTemplate DataType="vm:SilkViewModel">
+            <views:Silk DataContext="{Binding}" />
+        </DataTemplate>
+        <DataTemplate DataType="vm:ClisheViewModel">
+            <views:Clishe DataContext="{Binding}" />
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Grid RowDefinitions="32, *, 15" Background="LightGray">
+        <Grid Grid.Row="0" Grid.Column="0" Background="BurlyWood"
+              ColumnDefinitions="100 100, 120, 120, *, 20, 20, 20, 20"
+              RowDefinitions="16, 16">
+
+            <i:Interaction.Behaviors>
+                <behaviors:WindowDragBehavior />
+            </i:Interaction.Behaviors>
+
+            <Button Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Background="Black">
+                <Image Source="/Assets/FS dark long.png" Height="32" Stretch="Fill"></Image>
+            </Button>
+
+            <Button Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Background="Black"
+                    Command="{Binding ShowClisheViewCommand}">
+                <Image Source="/Assets/FS dark long.png" Height="32" Stretch="Uniform"></Image>
+            </Button>
+
+            <Button Grid.Column="2" Grid.Row="0" Grid.RowSpan="2"
+                    Height="28" Width="110" Margin="5, 0" Padding="0"
+                    FontSize="14" HorizontalContentAlignment="Center" FontWeight="Bold"
+                    VerticalContentAlignment="Center" Content="Архив"
+                    Command="{Binding ShowArchiveViewCommand}" />
+
+            <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
+                    Height="28" Width="110" Margin="5, 0" Padding="0"
+                    FontSize="14" HorizontalContentAlignment="Center" FontWeight="Bold"
+                    VerticalContentAlignment="Center" Content="Трафарет"
+                    Command="{Binding ShowSilkViewCommand}" />
+
+            <Rectangle Grid.Row="0" Grid.Column="4" Fill="GreenYellow" />
+
+            <Button Grid.Row="0" Grid.Column="5" Width="16" Height="16"
+                    FontSize="10" Padding="3,0,3,0" HorizontalAlignment="Center"
+                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                    Command="{Binding SnapToLeftHalfCommand}"
+                    CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="Content" Value="◧" />
+                    </Style>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Content" Value="◨" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+
+            <Button Grid.Row="0" Grid.Column="6" Width="16" Height="16"
+                    FontSize="12" Padding="3,0,3,0" HorizontalAlignment="Center"
+                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                    Command="{Binding MinimizeWindowCommand}"
+                    CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="Content" Value="_" />
+                    </Style>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Content" Value="—" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+
+            <Button Grid.Row="0" Grid.Column="7" Width="16" Height="16"
+                    FontSize="10" Padding="0,0,0,0" HorizontalAlignment="Center"
+                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                    Command="{Binding MaximizeRestoreWindowCommand}"
+                    CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="Content" Value="□" />
+                    </Style>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Content" Value="❐" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+
+            <Button Grid.Row="0" Grid.Column="8" Width="16" Height="16"
+                    FontSize="12" Padding="0, 0, 0, 3" HorizontalAlignment="Center"
+                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                    Command="{Binding RequestAppCloseCommand}"
+                    Content="×">
+                <Button.Styles>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Background" Value="Red" />
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </Grid>
+
+        <!-- Контент меняется в зависимости от выбранной вкладки -->
+        <ContentControl Grid.Row="1" Grid.Column="0"
+                        Content="{Binding CurrentView}" />
+
+        <Grid Grid.Row="2" Grid.Column="0" Background="Gray"></Grid>
+    </Grid>
+</Window>

@@ -1,0 +1,90 @@
+# ==================== .NET / MSBuild ====================
+#[Bb]in/
+[Oo]bj/
+obj/
+FormaStream\obj/
+*.user
+*.userprefs
+*.pidb
+*.suo
+*.csproj.user
+*.DotSettings.user
+*.ncrunchproject
+*.resharper
+*.sln.docstates
+*.vs/
+*.VSCodeCounter/
+.DS_Store
+
+# ==================== Rider / ReSharper ====================
+.idea/
+*.sln.iml
+*.prj.iml
+*.rpt2
+*.rptr
+*.slnx
+
+# ==================== Avalonia ====================
+# Скомпилированные XAML (генерируются при сборке)
+**/*.axaml.cs
+**/Avalonia/resources
+
+# Кэш дизайнера
+**/Avalonia.Cache/
+
+# ==================== SQLite / БД ====================
+# Файлы БД (игнорируем дев-базу, чтобы не коммитить тестовые данные)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# !!! НО: если нужна пустая схема для миграций — добавьте в репо файл схемы:
+# db/schema.sql или Scripts/001_Initial.sql
+
+# ==================== Логи / Временные файлы ====================
+logs/
+*.log
+temp/
+tmp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ==================== QuestPDF / Отчёты ====================
+# Сгенерированные PDF (не коммитим артефакты сборки)
+*.pdf
+Reports/Output/
+
+# ==================== NuGet ====================
+packages/
+*.nupkg
+*.snupkg
+
+# ==================== Environment / Secrets ====================
+# Конфиги с паролями/ключами — НИКОГДА не коммитьте
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+*.secrets.json
+.env
+*.env.*
+
+# ==================== CI/CD ====================
+.github/workflows/
+.azure-pipelines.yml
+.gitlab-ci.yml
+
+# ==================== Исключения (важно!) ====================
+# НЕ игнорируем эти файлы, даже если они в папках выше:
+!Directory.Build.props
+!Directory.Build.targets
+!global.json
+!*.sln
+!*.csproj
+!*.axaml
+!*.xaml
+

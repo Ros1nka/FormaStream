@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:FormaStream.Shell.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="FormaStream.Shell.View.Clishe"
+             x:DataType="vm:ClisheViewModel">
+    
+    <Design.DataContext>
+        <vm:ClisheViewModel />
+    </Design.DataContext>
+    
+    <Grid RowDefinitions="*, 10*" ColumnDefinitions="*, *">
+        
+        <Rectangle Grid.Row="0" Grid.Column="0" Fill="LightSlateGray"></Rectangle>
+        <Rectangle Grid.Row="1" Grid.Column="0" Fill="LightBlue"></Rectangle>
+        <Rectangle Grid.Row="0" Grid.Column="1" Fill="LightCoral"></Rectangle>
+        <Rectangle Grid.Row="1" Grid.Column="1" Fill="LightGreen"></Rectangle>
+        
+        <TreeView Grid.Row="1" Grid.Column="1">
+            
+        </TreeView>
+        
+    </Grid>
+</UserControl>

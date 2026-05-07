@@ -1,0 +1,84 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:view="clr-namespace:FormaStream.Shell.View"
+        x:Class="FormaStream.Shell.View.ConfirmationDialog"
+        Title="Подтверждение"
+        Width="480" Height="280"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        WindowDecorations="None"
+        Background="Transparent"
+        SizeToContent="WidthAndHeight"
+        TransparencyLevelHint="AcrylicBlur"
+        UseLayoutRounding="True">
+    
+    <!-- TODO:Настроить blur и shadow-->
+    <!-- ExtendClientAreaToDecorationsHint="True" -->
+
+    <!-- Внешний контейнер -->
+    <Border Margin="40">
+
+        <!-- Карточка с тенью -->
+        <Border Classes="card">
+
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                    <GradientStop Color="#80FFFFFF" Offset="0.0" />
+                    <GradientStop Color="#80AAFFFF" Offset="1.0" />
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <Border BorderBrush="#40000000"
+                    BorderThickness="0"
+                    CornerRadius="12"
+                    ClipToBounds="True">
+
+                <Grid RowDefinitions="Auto,*,Auto" Margin="24">
+
+                    <!-- Заголовок + иконка -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,16">
+                        <Border Classes="icon">
+                            <TextBlock x:Name="IconText" Text="?" Classes="icon" />
+                        </Border>
+                        <TextBlock x:Name="TitleText" Text="Выход" Classes="title" />
+                    </StackPanel>
+
+                    <!-- Сообщение -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="MessageText"
+                                   Text="Вы действительно хотите закрыть программу?"
+                                   Classes="message"
+                                   Margin="44,0,0,0" />
+                    </ScrollViewer>
+
+                    <!-- Кнопки -->
+                    <StackPanel Grid.Row="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Spacing="8"
+                                Margin="0,20,0,0">
+
+                        <Button x:Name="CancelButton"
+                                Content="Отмена"
+                                Classes="confirmation"
+                                IsCancel="True"
+                                Click="CancelButton_OnClick" />
+
+                        <Button x:Name="NoButton"
+                                Content="Нет"
+                                Classes="confirmation"
+                                IsVisible="False"
+                                Click="NoButton_OnClick" />
+
+                        <Button x:Name="YesButton"
+                                Content="Да"
+                                Classes="confirmation Primary"
+                                IsDefault="True"
+                                Click="YesButton_OnClick">
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Border>
+    </Border>
+</Window>

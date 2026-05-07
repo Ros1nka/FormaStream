@@ -1,0 +1,122 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!-- Add Controls for Previewer Here -->
+        </Border>
+    </Design.PreviewWith>
+
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BoxShadow" Value="0 12 40 0 #60000000" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+
+    <!-- Базовый стиль кнопки -->
+    <Style Selector="Button.confirmation">
+        <!-- Стили для всех кнопок приложения. Селектор не влияет -->
+        <!-- Переопределяем кисти состояний FluentTheme -->
+        <!-- <Style.Resources> -->
+        <!--     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#BDBDBD"/> -->
+        <!--     <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#9E9E9E"/> -->
+        <!--     <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#757575"/> -->
+        <!--     <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#424242"/> -->
+        <!--     <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#212121"/> -->
+        <!--     <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#212121"/> -->
+        <!-- </Style.Resources> -->
+
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Background" Value="#E0E0E0" />
+        <Setter Property="Foreground" Value="#212121" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="MinWidth" Value="80" />
+        <!-- Полностью отключаем анимации перехода цвета -->
+        <!-- <Setter Property="Transitions" Value="{x:Null}" /> -->
+
+        <!-- Минимальный шаблон без VisualStateManager -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border x:Name="PART_Background"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    
+                    <ContentPresenter Margin="{TemplateBinding Padding}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Теперь :pointerover и :pressed будут работать, потому что нет VisualStateManager -->
+    <Style Selector="Button.confirmation:pointerover">
+        <Setter Property="Background" Value="#BDBDBD" />
+        <Setter Property="BorderBrush" Value="#424242" />
+    </Style>
+
+    <Style Selector="Button.confirmation:pressed">
+        <Setter Property="Background" Value="#9E9E9E" />
+    </Style>
+
+    <!-- Primary -->
+    <Style Selector="Button.confirmation.Primary">
+        <Setter Property="Background" Value="#E81123" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="#C50F1F" />
+    </Style>
+
+    <Style Selector="Button.confirmation.Primary:pointerover">
+        <Setter Property="Background" Value="#F17B7B" />
+        <Setter Property="BorderBrush" Value="#E81123" />
+    </Style>
+
+    <Style Selector="Button.confirmation.Primary:pressed">
+        <Setter Property="Background" Value="#C50F1F" />
+    </Style>
+
+    <!-- Заголовок -->
+    <Style Selector="TextBlock.title">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Сообщение -->
+    <Style Selector="TextBlock.message">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <!-- Иконка -->
+    <Style Selector="Border.icon">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Background" Value="#FFA500" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBlock.icon">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- Add Styles Here -->
+</Styles>
