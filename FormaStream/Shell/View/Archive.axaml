@@ -31,7 +31,7 @@
         
         <!-- TreeView с файлами -->
         <TreeView Grid.Row="0" Grid.Column="1" ItemsSource="{Binding TreeNodes}"
-                  Margin="10" SelectedItem="{Binding SelectedVariant}">
+                  Margin="10" SelectedItem="{Binding SelectedNode}">
             <TreeView.DataTemplates>
                 <TreeDataTemplate DataType="{x:Type treeNodes:TreeNode}"
                                   ItemsSource="{Binding Children}">

@@ -12,6 +12,6 @@
     <Application.Styles>
         <FluentTheme />
         
-        <StyleInclude Source="avares://FormaStream/Themes/ConfirmationStyles.axaml"/>
+        <StyleInclude Source="avares://FormaStream/Shell/Styles/ConfirmationStyles.axaml"/>
     </Application.Styles>
 </Application>

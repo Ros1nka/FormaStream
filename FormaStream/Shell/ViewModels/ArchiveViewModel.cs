@@ -41,7 +41,8 @@ public partial class ArchiveViewModel : ViewModelBase
 
     private readonly IProgress<string> _progress;
 
-    private Variant _selectedVariant = new();
+    private TreeNode? _selectedNode;
+    private List<Variant> _selectedItem = [];
     private bool _isYesArchiveDirection = false;
 
     public ArchiveViewModel(
@@ -72,23 +73,30 @@ public partial class ArchiveViewModel : ViewModelBase
         private set => SetProperty(ref _isFolderExist, value);
     }
 
-    public Variant SelectedVariant
+    public TreeNode? SelectedNode
     {
-        get => _selectedVariant;
+        get => _selectedNode;
         set
         {
-            if (SetProperty(ref _selectedVariant, value))
+            if (SetProperty(ref _selectedNode, value))
             {
                 DestinationFolder = value.VariantNumber ?? "";
                 ClientNameTranslit = value.ClientName ?? "";
 
                 // ClientName = OrdersRepository.GetClient(value.ClientName);
 
+                if (value is VariantNode variantNode)
+                    _selectedItem.Add(variantNode.Variant);
+                
+                if (value is OrderNode orderNode)
+                    _selectedItem = orderNode.Order.Variants;
+                
+                
                 if (value.Files.Count != 0)
                 {
                     var fileName = value.Files.First().Filename;
 
-                    FullNameTranslit = Path.GetFileNameWithoutExtension(fileName);
+                    // FullNameTranslit = Path.GetFileNameWithoutExtension(fileName);
                 }
             }
         }
@@ -217,7 +225,7 @@ public partial class ArchiveViewModel : ViewModelBase
             Directory.CreateDirectory(path);
             CreateInfo = $"Папка создана: {DestinationFolder}";
 
-            var filesToMove = _selectedVariant?.Files;
+            var filesToMove = _selectedItem?.Files;
             if (filesToMove == null || filesToMove.Count == 0)
             {
                 CreateInfo = "Ошибка: Нет файлов для перемещения.";
@@ -326,9 +334,9 @@ public partial class ArchiveViewModel : ViewModelBase
 
         try
         {
-            if (_selectedVariant.Files.Count != 0)
+            if (_selectedItem.Files.Count != 0)
             {
-                var file = _selectedVariant.Files.First().Filename;
+                var file = _selectedItem.Files.First().Filename;
 
                 // Кроссплатформенный запуск проводника
                 var psi = new ProcessStartInfo

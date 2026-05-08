@@ -16,7 +16,6 @@
         <Folder Include="Infrastructure\Reporting\" />
         <Folder Include="Shell\FileManager\ViewModels\" />
         <Folder Include="Shell\FileManager\Views\" />
-        <Folder Include="Shell\Styles\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -69,5 +68,9 @@
             <DependentUpon>Silksreen.axaml</DependentUpon>
             <SubType>Code</SubType>
         </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Shell\Styles\ConfirmationStyles.axaml" />
     </ItemGroup>
 </Project>
