@@ -23,7 +23,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Кнопки управления -->
-        <Grid Grid.Column="0" Margin="20" RowDefinitions="100, 100, 100, *" ColumnDefinitions="100, *">
+        <Grid Grid.Column="0" Margin="20" RowDefinitions="100, 100, 100, 100, 100, *" ColumnDefinitions="100, *">
             <Button Grid.Row="0" Grid.Column="0" Width="100" Height="100"
                     Command="{Binding OpenSourceFolderCommand}"
                     IsEnabled="true">
@@ -35,10 +35,24 @@
                 <TextBlock Text="Открыть в проводнике" TextWrapping="Wrap"> </TextBlock>
             </Button>
             <Button Grid.Row="2" Grid.Column="0" Width="100" Height="100"
-                    Command="{Binding ArchivingCommand}"
-                    IsEnabled= "{Binding IsArchivingButtonEnabled}">
+                    Command="{Binding ArchivingCommand}">
+                    <!-- IsEnabled= "{Binding IsArchivingButtonEnabled}" -->
                 <TextBlock Text="Архивирование" TextWrapping="Wrap"> </TextBlock>
             </Button>
+            <CheckBox Grid.Row="3" Grid.Column="0" 
+                      Content="Архивировать в Zip" 
+                      IsChecked="{Binding IsYesArchiveDirection}" 
+                      Margin="10,5" 
+                      FontFamily="JetBrains Mono" 
+                      FontSize="12"
+                      VerticalAlignment="Center"/>
+            <CheckBox Grid.Row="4" Grid.Column="0" 
+                      Content="Архивировать в папку заказчика" 
+                      IsChecked="{Binding IsFullPath}" 
+                      Margin="10,5" 
+                      FontFamily="JetBrains Mono" 
+                      FontSize="12"
+                      VerticalAlignment="Center"/>
         </Grid>
 
         <!-- Сплиттер -->

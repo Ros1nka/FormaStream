@@ -1,0 +1,79 @@
+[RelayCommand(CanExecute = nameof(CanArchiveFiles))]
+private async Task Archiving()
+{
+    IsProcessing = true;
+    _progress.Report("Подготовка к архивации...");
+
+    try
+    {
+        var filesToArchive = SelectedFiles.Count > 0 
+            ? SelectedFiles 
+            : SelectedVariants.FirstOrDefault()?.Files;
+
+        if (filesToArchive == null || filesToArchive.Count == 0)
+        {
+            ItemInfoText = "Ошибка: Нет файлов для архивации.";
+            return;
+        }
+
+        var safeDestinationFolder = SanitizeForZip(DestinationFolder);
+        var targetDir = IsFullPath 
+            ? Path.Combine(TargetFolder, ClientName, safeDestinationFolder) 
+            : Path.Combine(TargetFolder, safeDestinationFolder);
+            
+        Directory.CreateDirectory(targetDir);
+        var progressMax = filesToArchive.Count;
+
+        // 🔑 Фоновая работа с файлами. await ждёт завершения, finally сработает корректно.
+        await Task.Run(() =>
+        {
+            if (IsYesArchiveDirection)
+            {
+                var zipPath = Path.Combine(targetDir, $"{safeDestinationFolder}.zip");
+                using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+                
+                for (int i = 0; i < filesToArchive.Count; i++)
+                {
+                    var file = filesToArchive[i];
+                    _progress.Report($"{i + 1}/{progressMax}, добавляется {Path.GetFileName(file.Filename)}");
+                    archive.CreateEntryFromFile(file.Filename, Path.GetFileName(file.Filename));
+                    
+                    try 
+                    { 
+                        if (File.Exists(file.Filename)) File.Delete(file.Filename); 
+                    }
+                    catch (Exception ex) 
+                    { 
+                        Debug.WriteLine($"Не удалось удалить: {ex.Message}"); 
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < filesToArchive.Count; i++)
+                {
+                    var file = filesToArchive[i];
+                    _progress.Report($"{i + 1}/{progressMax}, перемещается {Path.GetFileName(file.Filename)}");
+                    var destFile = Path.Combine(targetDir, Path.GetFileName(file.Filename));
+                    if (File.Exists(destFile)) File.Delete(destFile);
+                    File.Move(file.Filename, destFile);
+                }
+            }
+        });
+
+        ItemInfoText = IsYesArchiveDirection 
+            ? $"Архив создан: {safeDestinationFolder}.zip\nФайлов: {progressMax}" 
+            : $"Перемещено файлов: {progressMax}";
+        _progress.Report("Готово!");
+    }
+    catch (Exception ex)
+    {
+        ItemInfoText = $"Ошибка: {ex.Message}";
+        Debug.WriteLine($"[Archiving] {ex}");
+    }
+    finally
+    {
+        IsProcessing = false;
+        _progress.Report(string.Empty);
+    }
+}

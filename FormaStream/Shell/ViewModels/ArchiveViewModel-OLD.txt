@@ -19,17 +19,12 @@ public partial class ArchiveViewModel : ViewModelBase
 {
     [ObservableProperty] public partial ObservableCollection<Variant> FileList { get; set; } = [];
     [ObservableProperty] public partial bool IsOpenFolderButtonEnabled { get; set; } = false;
-    // [ObservableProperty] public partial bool IsArchivingButtonEnabled { get; set; } = false;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private partial bool IsProcessing { get; set; } = false;
+    [ObservableProperty] public partial bool IsArchivingButtonEnabled { get; set; } = false;
+    [ObservableProperty] public partial bool IsFullPath { get; set; }
+    [ObservableProperty] private partial bool IsProcessing { get; set; }
     [ObservableProperty] public partial string IsProcessingValue { get; set; } = string.Empty;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private partial string SourceFolder { get; set; } = string.Empty;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private partial string TargetFolder { get; set; } = string.Empty;
+    [ObservableProperty] private partial string SourceFolder { get; set; } = string.Empty;
+    [ObservableProperty] private partial string TargetFolder { get; set; } = string.Empty;
     [ObservableProperty] private partial string DestinationFolder { get; set; } = "DestinationFolder";
     [ObservableProperty] private partial string ClientName { get; set; } = "_clientName";
     [ObservableProperty] public partial string ClientNameTranslit { get; set; } = "_clientNameTranslit";
@@ -37,8 +32,7 @@ public partial class ArchiveViewModel : ViewModelBase
     [ObservableProperty] private partial List<Variant> SelectedVariants { get; set; } = [];
     [ObservableProperty] private partial List<FileItem> SelectedFiles { get; set; } = [];
     [ObservableProperty] public partial string ItemInfoText { get; set; } = string.Empty;
-    [ObservableProperty] public partial bool IsYesArchiveDirection { get; set; }
-    [ObservableProperty] public partial bool IsFullPath { get; set; }
+    [ObservableProperty] private bool _isYesArchiveDirection = false;
 
     public AvaloniaList<TreeNode> TreeNodes { get; } = [];
     private TreeNode? _selectedNode;
@@ -97,19 +91,21 @@ public partial class ArchiveViewModel : ViewModelBase
                     SelectedVariants.Add(variantNode.Variant);
                     SelectedFiles.Clear();
                     UpdateItemInfo(variantNode.Variant);
-                    // IsArchivingButtonEnabled = true;
+                    IsArchivingButtonEnabled = true;
                 }
 
                 if (value is OrderNode orderNode)
                 {
                     SelectedVariants.Clear();
-
-                    foreach (var variant in orderNode.Order.Variants)
-                        SelectedVariants.Add(variant);
+                    if (orderNode.Order.Variants != null)
+                    {
+                        foreach (var variant in orderNode.Order.Variants)
+                            SelectedVariants.Add(variant);
+                    }
 
                     SelectedFiles.Clear();
                     UpdateItemInfo(orderNode.Order);
-                    // IsArchivingButtonEnabled = false;
+                    IsArchivingButtonEnabled = false;
                 }
 
                 if (value is FileNode fileNode)
@@ -118,7 +114,7 @@ public partial class ArchiveViewModel : ViewModelBase
                     SelectedFiles.Add(fileNode.File);
                     SelectedVariants.Clear();
                     UpdateItemInfo(fileNode.File);
-                    // IsArchivingButtonEnabled = false;
+                    IsArchivingButtonEnabled = false;
                 }
 
                 //TODO Multiselection
@@ -237,11 +233,12 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
-    
+
     private bool CanArchiveFiles() =>
         !string.IsNullOrEmpty(SourceFolder) &&
         !string.IsNullOrEmpty(TargetFolder) &&
         !IsProcessing;
+
 
     [RelayCommand(CanExecute = nameof(CanArchiveFiles))]
     private async Task Archiving()
@@ -267,54 +264,59 @@ public partial class ArchiveViewModel : ViewModelBase
                 return;
             }
 
-            // Проверяем имя на безопасность
-            var safeDestinationFolder = SanitizeForZip(DestinationFolder);
-            var safeClientName = SanitizeForZip(ClientName);
-
             // Формируем целевой путь
             var targetDir = IsFullPath
-                ? Path.Combine(TargetFolder, safeClientName, safeDestinationFolder)
-                : Path.Combine(TargetFolder, safeDestinationFolder);
+                ? Path.Combine(TargetFolder, ClientName, DestinationFolder)
+                : Path.Combine(TargetFolder, DestinationFolder);
 
             Directory.CreateDirectory(targetDir);
 
             var progressMax = filesToArchive.Count;
+            var progressValue = 0;
 
-            // Фоновая работа с файлами. await ждёт завершения, finally сработает корректно.
-            await Task.Run(() =>
+            if (IsYesArchiveDirection)
             {
-                if (IsYesArchiveDirection)
+                // Архивация в фоне в zip
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
                 {
-                    var zipPath = Path.Combine(targetDir, $"{safeDestinationFolder}.zip");
+                    var zipPath = Path.Combine(targetDir, $"{DestinationFolder}.zip");
 
                     using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
 
-                    for (var i = 0; i < filesToArchive.Count; i++)
+                    foreach (var file in filesToArchive)
                     {
-                        var file = filesToArchive[i];
+                        progressValue++;
 
                         _progress.Report(
-                            $"{i + 1}/{progressMax}, добавляется {Path.GetFileName(file.Filename)}");
+                            $"{progressValue}/{progressMax}, добавляется {Path.GetFileName(file.Filename)}");
 
                         archive.CreateEntryFromFile(file.Filename, Path.GetFileName(file.Filename));
 
                         try
                         {
-                            if (File.Exists(file.Filename)) File.Delete(file.Filename);
+                            if (File.Exists(file.Filename))
+                            {
+                                File.Delete(file.Filename);
+                            }
                         }
                         catch (Exception ex)
                         {
                             _progress.Report($"Не удалось удалить файл {file}: {ex.Message}");
                         }
                     }
-                }
-                else
-                {
-                    for (var i = 0; i < filesToArchive.Count; i++)
-                    {
-                        var file = filesToArchive[i];
 
-                        _progress.Report($"{i + 1}/{progressMax}, перемещается {Path.GetFileName(file.Filename)}");
+                    _progress.Report($"Архив создан: {Path.GetFileName(zipPath)}\nФайлов: {filesToArchive.Count}");
+                });
+            }
+            else
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    foreach (var file in filesToArchive)
+                    {
+                        progressValue++;
+
+                        _progress.Report($"{progressValue}/{progressMax}, добавлено");
 
                         var destFile = Path.Combine(targetDir, Path.GetFileName(file.Filename));
 
@@ -322,16 +324,14 @@ public partial class ArchiveViewModel : ViewModelBase
 
                         File.Move(file.Filename, destFile);
                     }
-                }
+                });
+            }
 
-                ItemInfoText = IsYesArchiveDirection
-                    ? $"Архив создан: {safeDestinationFolder}.zip\nФайлов: {progressMax}"
-                    : $"Перемещено файлов: {progressMax}";
-                _progress.Report("Готово!");
+            // 4. Уведомление об успехе
 
-                // OrdersRepository.AddFileGroup(_selectedFile, path);
-            });
+            _progress.Report("Готово!");
         }
+
         catch (Exception ex)
         {
             ItemInfoText = $"Ошибка архивации: {ex.Message}";
@@ -344,27 +344,171 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
+    
+    
 
-    // Символы, запрещённые в ZIP и критичные для Windows
-    private static readonly HashSet<char> InvalidZipChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '\0'];
+    private bool CanMoveFiles() =>
+        !string.IsNullOrEmpty(SourceFolder) &&
+        !string.IsNullOrEmpty(TargetFolder) &&
+        !IsProcessing;
 
-    // Очищает строку от символов, недопустимых в именах и заменяет их на '_' и удаляет управляющие символы.
-    private static string SanitizeForZip(string input)
+    [RelayCommand(CanExecute = nameof(CanMoveFiles))]
+    private async Task MoveFiles()
     {
-        if (string.IsNullOrWhiteSpace(input)) return "archive";
+        IsProcessing = true;
+        var CreateInfo = "";
 
-        var result = new char[input.Length];
-        var len = 0;
-
-        foreach (var c in input)
+        try
         {
-            result[len++] = InvalidZipChars.Contains(c) || char.IsControl(c) ? '_' : c;
+            // Сохранение клиента
+            if (!string.IsNullOrWhiteSpace(ClientName))
+            {
+                // OrdersRepository.AddClient(ClientName, ClientNameTranslit);
+            }
+
+            string path;
+
+            if (IsFullPath)
+            {
+                path = Path.Combine(TargetFolder, ClientName, DestinationFolder);
+            }
+            else
+            {
+                path = Path.Combine(TargetFolder, DestinationFolder);
+            }
+
+            Directory.CreateDirectory(path);
+            CreateInfo = $"Папка создана: {DestinationFolder}";
+
+            //TODO Multiselection
+            var filesToMove = SelectedVariants.First().Files;
+            if (filesToMove == null || filesToMove.Count == 0)
+            {
+                CreateInfo = "Ошибка: Нет файлов для перемещения.";
+                IsProcessing = false;
+                return;
+            }
+
+            var movedCount = 0;
+
+            await Task.Run(() =>
+            {
+                if (_isYesArchiveDirection)
+                {
+                    string zipPath = Path.Combine(path, $"{DestinationFolder}.zip");
+                    CreateZipArchive(zipPath, filesToMove);
+                    CreateInfo += $", создан архив: {Path.GetFileName(zipPath)}";
+
+                    foreach (var file in filesToMove)
+                    {
+                        try
+                        {
+                            if (File.Exists(file.Filename))
+                            {
+                                File.Delete(file.Filename);
+                                movedCount++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Не удалось удалить файл {file}: {ex.Message}");
+                        }
+                    }
+                }
+                else
+                {
+                    var progressMax = filesToMove.Count;
+                    var progressValue = 0;
+
+                    foreach (var file in filesToMove)
+                    {
+                        // ВАЖНО: В Avalonia используется Dispatcher.UIThread
+                        // Avallonia.Threading.Dispatcher.UIThread.Post(() => { ... });
+
+                        progressValue++;
+
+                        _progress.Report($"{progressValue}/{progressMax}, добавлено");
+
+                        string destFile = Path.Combine(path, Path.GetFileName(file.Filename));
+
+                        if (File.Exists(destFile)) File.Delete(destFile);
+
+                        File.Move(file.Filename, destFile);
+                        movedCount++;
+                    }
+                }
+            });
+
+            // OrdersRepository.AddFileGroup(_selectedFile, path);
+
+            CreateInfo += $", перемещено/удалено файлов: {movedCount}";
+
+            // Обновляем список
+            if (!string.IsNullOrEmpty(SourceFolder))
+                AddFilesInListViewByVariant(SourceFolder);
+
+            _progress.Report($"Обработка завершена!");
         }
+        catch (Exception ex)
+        {
+            CreateInfo = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
 
-        var sanitized = new string(result, 0, len);
+    private void CreateZipArchive(string zipPath, System.Collections.Generic.List<FileItem> files)
+    {
+        try
+        {
+            var progressMax = files.Count;
+            var progressValue = 0;
 
-        // Если после очистки строка стала пустой
-        return string.IsNullOrWhiteSpace(sanitized) ? "archive" : sanitized.Trim();
+            using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+            foreach (var file in files)
+            {
+                progressValue++;
+                // Обновление прогресса (в UI потоке желательно)
+                _progress.Report($"{progressValue}/{progressMax}, добавлено");
+
+                string entryFile = Path.GetFileName(file.Filename);
+                zip.CreateEntryFromFile(file.Filename, entryFile);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Ошибка при создании архива: {ex.Message}");
+        }
+    }
+
+
+    private void AddFilesInListViewByVariant(string folderPath)
+    {
+        var variants = VariantsByNumber(folderPath);
+
+        FileList.Clear();
+
+        foreach (var variant in variants)
+        {
+            FileList.Add(variant);
+        }
+    }
+
+    private List<Variant> VariantsByNumber(string folderPath)
+    {
+        if (!Directory.Exists(folderPath)) return new List<Variant>();
+
+        var files = Directory.EnumerateFiles(folderPath)
+            .Where(file =>
+                file.EndsWith(".len", StringComparison.OrdinalIgnoreCase) &&
+                !file.EndsWith("rot.len", StringComparison.OrdinalIgnoreCase) &&
+                !file.EndsWith("cdi.len", StringComparison.OrdinalIgnoreCase))
+            .Select(_fileParser.FileParser)
+            .ToList();
+
+        return _variants.CreateVariants(files);
     }
 
 
