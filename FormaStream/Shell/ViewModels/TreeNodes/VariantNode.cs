@@ -11,7 +11,7 @@ namespace FormaStream.Shell.ViewModels.TreeNodes
             Variant = variant;
         }
 
-        public override string DisplayName => $" {Variant.VariantNumber}" ?? "<N/A>";
+        public override string DisplayName => $"{Variant.VariantNumber}" ?? "<N/A>";
         public override string IconSymbol => " ";
     }
 }

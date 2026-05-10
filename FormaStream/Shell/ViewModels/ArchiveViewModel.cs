@@ -17,35 +17,30 @@ namespace FormaStream.Shell.ViewModels;
 
 public partial class ArchiveViewModel : ViewModelBase
 {
-    [ObservableProperty] public partial ObservableCollection<Variant> FileList { get; set; } = [];
-    [ObservableProperty] public partial bool IsOpenFolderButtonEnabled { get; set; } = false;
-    // [ObservableProperty] public partial bool IsArchivingButtonEnabled { get; set; } = false;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private partial bool IsProcessing { get; set; } = false;
-    [ObservableProperty] public partial string IsProcessingValue { get; set; } = string.Empty;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private partial string SourceFolder { get; set; } = string.Empty;
-    [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private partial string TargetFolder { get; set; } = string.Empty;
-    [ObservableProperty] private partial string DestinationFolder { get; set; } = "DestinationFolder";
-    [ObservableProperty] private partial string ClientName { get; set; } = "_clientName";
-    [ObservableProperty] public partial string ClientNameTranslit { get; set; } = "_clientNameTranslit";
-    [ObservableProperty] public partial string FullNameTranslit { get; set; } = "FullNameTranslit";
-    [ObservableProperty] private partial List<Variant> SelectedVariants { get; set; } = [];
-    [ObservableProperty] private partial List<FileItem> SelectedFiles { get; set; } = [];
-    [ObservableProperty] public partial string ItemInfoText { get; set; } = string.Empty;
-    [ObservableProperty] public partial bool IsYesArchiveDirection { get; set; }
-    [ObservableProperty] public partial bool IsFullPath { get; set; }
+    [ObservableProperty] private ObservableCollection<Variant> _fileList = [];
+    // [ObservableProperty] public partial bool IsArchivingButtonEnabled = false;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
+    private bool _isProcessing;
+    [ObservableProperty] private string _isProcessingValue = string.Empty;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ShowFolderOrFilesCommand))]
+    private string _sourceFolder = string.Empty;
+    [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
+    private string _targetFolder = string.Empty;
+    [ObservableProperty] private string _destinationFolder = "Название заказчика";
+    [ObservableProperty] private string _clientName = "_clientName";
+    [ObservableProperty] private string _clientNameTranslit = "_clientNameTranslit";
+    [ObservableProperty] private string _fullNameTranslit = "FullNameTranslit";
+    [ObservableProperty] private List<Variant> _selectedVariants = [];
+    [ObservableProperty] private List<FileItem> _selectedFiles = [];
+    [ObservableProperty] private string _itemInfoText = string.Empty;
+    [ObservableProperty] private bool _isYesArchiveDirection;
+    [ObservableProperty] private bool _isFullPath;
 
     public AvaloniaList<TreeNode> TreeNodes { get; } = [];
-    private TreeNode? _selectedNode;
-
-    // Приватные поля для логики
     private string _isFolderExist = string.Empty;
-
+    private TreeNode? _selectedNode;
+    
     private readonly IFolderPickerService _folderPicker;
     private readonly IFileParserService _fileParser;
     private readonly IVariantService _variants;
@@ -71,12 +66,6 @@ public partial class ArchiveViewModel : ViewModelBase
     }
 
     // --- Логика свойств (Setters with logic) ---
-
-    partial void OnDestinationFolderChanged(string value)
-    {
-        IsFolderExist = DestinationFolderTextChanged();
-    }
-
     public string IsFolderExist
     {
         get => _isFolderExist;
@@ -162,8 +151,6 @@ public partial class ArchiveViewModel : ViewModelBase
             SourceFolder = selectedPath;
             TargetFolder = selectedPath;
 
-            IsOpenFolderButtonEnabled = true;
-
             await LoadTreeAsync(selectedPath);
         }
     }
@@ -237,7 +224,7 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
-    
+
     private bool CanArchiveFiles() =>
         !string.IsNullOrEmpty(SourceFolder) &&
         !string.IsNullOrEmpty(TargetFolder) &&
@@ -329,7 +316,7 @@ public partial class ArchiveViewModel : ViewModelBase
                     : $"Перемещено файлов: {progressMax}";
                 _progress.Report("Готово!");
 
-                // OrdersRepository.AddFileGroup(_selectedFile, path);
+                // OrdersRepository.AddFileGroup(SelectedFile, path);
             });
         }
         catch (Exception ex)
@@ -378,8 +365,9 @@ public partial class ArchiveViewModel : ViewModelBase
         return Directory.Exists(fullPath) ? "Папка уже существует!" : "";
     }
 
+    private bool CanShowFolderOrFiles() => !string.IsNullOrEmpty(SourceFolder);
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanShowFolderOrFiles))]
     private void ShowFolderOrFiles()
     {
         if (string.IsNullOrEmpty(SourceFolder)) return;

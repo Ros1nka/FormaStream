@@ -10,11 +10,12 @@ namespace FormaStream.Core.Services
         public List<Order> GroupByOrder(IEnumerable<Variant> variants)
         {
             var grouped = variants
-                .Where(v => !string.IsNullOrEmpty(v.OrderNumber) && v.OrderNumber != "N/A")
+                // .Where(v => !string.IsNullOrEmpty(v.OrderNumber) && v.OrderNumber != "N/A")
+                .Where(v => !string.IsNullOrEmpty(v.OrderNumber))
                 .GroupBy(v => new
                 {
                     v.OrderNumber,
-                    v.ClientName
+                    // v.ClientName
                 })
                 .ToList();
 
@@ -25,7 +26,7 @@ namespace FormaStream.Core.Services
                 var order = new Order
                 {
                     OrderNumber = group.Key.OrderNumber,
-                    ClientName = group.Key.ClientName,
+                    ClientName = variants.FirstOrDefault(v => v.OrderNumber == group.Key.OrderNumber)?.ClientName,
                     Variants = group.ToList()
                 };
 

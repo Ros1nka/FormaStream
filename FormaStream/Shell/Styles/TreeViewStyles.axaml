@@ -7,9 +7,9 @@
         <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
         <!-- Явно задаём начальное состояние: все узлы свёрнуты -->
         <!-- <Setter Property="IsExpanded" Value="False" /> -->
-        <Setter Property="Margin" Value="0,2, 0, 5" />
+        <Setter Property="Margin" Value="0,0, 0, 5" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="MinHeight" Value="12"/>
+        <Setter Property="MinHeight" Value="8"/>
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontSize" Value="12" />
@@ -48,7 +48,7 @@
                         <ItemsPresenter x:Name="PART_ItemsPresenter"
                                         Grid.Row="1"
                                         ItemsPanel="{TemplateBinding ItemsPanel}"
-                                        Margin="16,0,0,0"
+                                        Margin="48,8,0,0"
                                         IsVisible="{TemplateBinding IsExpanded}" />
                     </Grid>
                 </ControlTemplate>
