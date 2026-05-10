@@ -43,7 +43,7 @@ public static class SeparationAnalysisHelper
         {
             var lastSeparator = fileNamesWithoutExtension[0].LastIndexOf('_');
 
-            var separation = fileNamesWithoutExtension[0].Substring(lastSeparator);
+            var separation = fileNamesWithoutExtension[0].Substring(lastSeparator + 1);
 
             if (SeparationKeys.Contains(separation))
             {

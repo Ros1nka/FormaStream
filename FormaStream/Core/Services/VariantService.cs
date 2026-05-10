@@ -36,9 +36,10 @@ namespace FormaStream.Core.Services
                     OrderNumber = firstFile.OrderNumber,
                     ClientName = firstFile.ClientName,
                     PolymerType = firstFile.PolymerType,
+                    ForMachine =  firstFile.ForMachine,
                     VariantPath = Path.GetDirectoryName(firstFile.Filename) ?? string.Empty,
                     Files = group.ToList(),
-                    //Separation = group.Select(f => f.Separation).ToList()
+                    Separation = group.Select(f => f.Separation).ToList()
                 };
 
                 result.Add(variant);

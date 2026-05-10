@@ -6,9 +6,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Collections;
 using FormaStream.Core.Interfaces;
 using FormaStream.Core.Models;
-using FormaStream.Core.Services;
 using FormaStream.Shell.ViewModels.TreeNodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,18 +18,24 @@ namespace FormaStream.Shell.ViewModels;
 public partial class ArchiveViewModel : ViewModelBase
 {
     [ObservableProperty] public partial ObservableCollection<Variant> FileList { get; set; } = [];
-    [ObservableProperty] public partial ObservableCollection<TreeNode> TreeNodes { get; set; } = [];
-    [ObservableProperty] public partial bool IsArrowVisible { get; set; }
-    [ObservableProperty] public partial bool IsOpenFolderButtonEnabled { get; set; }
+    [ObservableProperty] public partial bool IsOpenFolderButtonEnabled { get; set; } = false;
+    [ObservableProperty] public partial bool IsArchivingButtonEnabled { get; set; } = false;
     [ObservableProperty] public partial bool IsFullPath { get; set; }
-    [ObservableProperty] public partial bool IsProcessing { get; set; }
+    [ObservableProperty] private partial bool IsProcessing { get; set; }
     [ObservableProperty] public partial string IsProcessingValue { get; set; } = string.Empty;
-    [ObservableProperty] public partial string SourceFolder { get; set; } = string.Empty;
-    [ObservableProperty] public partial string TargetFolder { get; set; } = string.Empty;
-    [ObservableProperty] public partial string DestinationFolder { get; set; } = "DestinationFolder";
-    [ObservableProperty] public partial string ClientName { get; set; } = "_clientName";
+    [ObservableProperty] private partial string SourceFolder { get; set; } = string.Empty;
+    [ObservableProperty] private partial string TargetFolder { get; set; } = string.Empty;
+    [ObservableProperty] private partial string DestinationFolder { get; set; } = "DestinationFolder";
+    [ObservableProperty] private partial string ClientName { get; set; } = "_clientName";
     [ObservableProperty] public partial string ClientNameTranslit { get; set; } = "_clientNameTranslit";
     [ObservableProperty] public partial string FullNameTranslit { get; set; } = "FullNameTranslit";
+    [ObservableProperty] private partial List<Variant> SelectedVariants { get; set; } = [];
+    [ObservableProperty] private partial List<FileItem> SelectedFiles { get; set; } = [];
+    [ObservableProperty] public partial string ItemInfoText { get; set; } = string.Empty;
+    [ObservableProperty] private bool _isYesArchiveDirection = false;
+
+    public AvaloniaList<TreeNode> TreeNodes { get; } = [];
+    private TreeNode? _selectedNode;
 
     // Приватные поля для логики
     private string _isFolderExist = string.Empty;
@@ -38,23 +44,21 @@ public partial class ArchiveViewModel : ViewModelBase
     private readonly IFileParserService _fileParser;
     private readonly IVariantService _variants;
     private readonly IOrderService _orders;
-
+    private readonly IExplorerHelper _explorerHelper;
     private readonly IProgress<string> _progress;
-
-    private TreeNode? _selectedNode;
-    private List<Variant> _selectedItem = [];
-    private bool _isYesArchiveDirection = false;
 
     public ArchiveViewModel(
         IFolderPickerService folderPicker,
         IFileParserService fileParser,
         IVariantService variants,
-        IOrderService orders)
+        IOrderService orders,
+        IExplorerHelper explorer)
     {
         _folderPicker = folderPicker;
         _fileParser = fileParser;
         _variants = variants;
         _orders = orders;
+        _explorerHelper = explorer;
         _progress = new Progress<string>(msg => IsProcessingValue = msg);
 
         // DatabaseContext.InitializeDatabase();
@@ -80,93 +84,85 @@ public partial class ArchiveViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedNode, value))
             {
-                DestinationFolder = value.VariantNumber ?? "";
-                ClientNameTranslit = value.ClientName ?? "";
-
                 // ClientName = OrdersRepository.GetClient(value.ClientName);
-
                 if (value is VariantNode variantNode)
-                    _selectedItem.Add(variantNode.Variant);
-                
-                if (value is OrderNode orderNode)
-                    _selectedItem = orderNode.Order.Variants;
-                
-                
-                if (value.Files.Count != 0)
                 {
-                    var fileName = value.Files.First().Filename;
-
-                    // FullNameTranslit = Path.GetFileNameWithoutExtension(fileName);
+                    SelectedVariants.Clear();
+                    SelectedVariants.Add(variantNode.Variant);
+                    SelectedFiles.Clear();
+                    UpdateItemInfo(variantNode.Variant);
+                    IsArchivingButtonEnabled =  true;
                 }
+
+                if (value is OrderNode orderNode)
+                {
+                    SelectedVariants.Clear();
+                    if (orderNode.Order.Variants != null)
+                    {
+                        foreach (var variant in orderNode.Order.Variants)
+                            SelectedVariants.Add(variant);
+                    }
+
+                    SelectedFiles.Clear();
+                    UpdateItemInfo(orderNode.Order);
+                    IsArchivingButtonEnabled =  false;
+                }
+
+                if (value is FileNode fileNode)
+                {
+                    SelectedFiles.Clear();
+                    SelectedFiles.Add(fileNode.File);
+                    SelectedVariants.Clear();
+                    UpdateItemInfo(fileNode.File);
+                    IsArchivingButtonEnabled =  false;
+                }
+
+                //TODO Multiselection
+                // DestinationFolder = SelectedVariants.First().VariantNumber ?? "DestinationFolder N/A";
+                // ClientNameTranslit = SelectedVariants.First().ClientName ?? "ClientNameTranslit N/A";
             }
         }
     }
 
+    // 🔹 Команда: Раскрыть ВСЕ узлы
+    [RelayCommand]
+    private void ExpandAll()
+    {
+        foreach (var root in TreeNodes)
+            root.SetExpandedRecursive(true);
+    }
+
+    // 🔹 Команда: Свернуть ВСЕ узлы
+    [RelayCommand]
+    private void CollapseAll()
+    {
+        foreach (var root in TreeNodes)
+            root.SetExpandedRecursive(false);
+    }
+
+    // 🔹 Команда: Раскрыть только виды
+    [RelayCommand]
+    private void ExpandVariantsOnly()
+    {
+        foreach (var root in TreeNodes)
+            root.ExpandVariantsRecursive(root, 0);
+    }
 
     [RelayCommand]
     private async Task OpenSourceFolderAsync()
     {
-        var selectedPath = await _folderPicker.PickFolderAsync(null, "Выберите папку для архива");
+        var selectedPath = await _folderPicker.PickFolderAsync(null, "Выберите папку источник");
 
         if (!string.IsNullOrEmpty(selectedPath))
         {
             SourceFolder = selectedPath;
             TargetFolder = selectedPath;
 
-            IsArrowVisible = true;
             IsOpenFolderButtonEnabled = true;
-
-            // Логика обновления списка файлов
-            AddFilesInListViewByVariant(selectedPath);
 
             await LoadTreeAsync(selectedPath);
         }
     }
-
-    private async Task LoadTreeAsync(string folderPath)
-    {
-        TreeNodes.Clear();
-
-        if (!Directory.Exists(folderPath)) return;
-
-        await Task.Run(() =>
-        {
-            var files = Directory.EnumerateFiles(folderPath)
-                .Where(file =>
-                    file.EndsWith(".len", StringComparison.OrdinalIgnoreCase) &&
-                    !file.EndsWith("rot.len", StringComparison.OrdinalIgnoreCase) &&
-                    !file.EndsWith("cdi.len", StringComparison.OrdinalIgnoreCase))
-                .Select(_fileParser.FileParser)
-                .ToList();
-
-            var variants = _variants.CreateVariants(files);
-
-            var orders = _orders.GroupByOrder(variants);
-
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                foreach (var order in orders)
-                {
-                    var orderNode = new OrderNode(order);
-
-                    foreach (var variant in order.Variants)
-                    {
-                        var variantNode = new VariantNode(variant);
-
-                        foreach (var file in variant.Files)
-                        {
-                            variantNode.Children.Add(new FileNode(file));
-                        }
-
-                        orderNode.Children.Add(variantNode);
-                    }
-
-                    TreeNodes.Add(orderNode);
-                }
-            });
-        });
-    }
-
 
     private bool CanSelectTargetFolder() => !IsProcessing;
 
@@ -181,6 +177,61 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
+    private async Task LoadTreeAsync(string folderPath)
+    {
+        TreeNodes.Clear();
+        if (!Directory.Exists(folderPath)) return;
+
+        IsProcessing = true;
+        IsProcessingValue = "Загрузка структуры...";
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                var files = Directory.EnumerateFiles(folderPath)
+                    .Where(file =>
+                        file.EndsWith(".len", StringComparison.OrdinalIgnoreCase) &&
+                        !file.EndsWith("rot.len", StringComparison.OrdinalIgnoreCase) &&
+                        !file.EndsWith("cdi.len", StringComparison.OrdinalIgnoreCase))
+                    .Select(_fileParser.FileParser)
+                    .ToList();
+
+                var variants = _variants.CreateVariants(files);
+
+                var orders = _orders.GroupByOrder(variants);
+
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    foreach (var order in orders)
+                    {
+                        var orderNode = new OrderNode(order);
+
+                        foreach (var variant in order.Variants)
+                        {
+                            var variantNode = new VariantNode(variant);
+
+                            foreach (var file in variant.Files)
+                            {
+                                variantNode.Children.Add(new FileNode(file));
+                            }
+
+                            orderNode.Children.Add(variantNode);
+                        }
+
+                        TreeNodes.Add(orderNode);
+                    }
+                });
+            });
+        }
+        finally
+        {
+            IsProcessing = false;
+            IsProcessingValue = "";
+        }
+    }
+
+    
 // UI сообщение при смене адреса
     private string DestinationFolderTextChanged()
     {
@@ -191,6 +242,38 @@ public partial class ArchiveViewModel : ViewModelBase
         return Directory.Exists(fullPath) ? "Папка уже существует!" : "";
     }
 
+    private bool CanArchiveFiles() =>
+        !string.IsNullOrEmpty(SourceFolder) &&
+        !string.IsNullOrEmpty(TargetFolder) &&
+        !IsProcessing;
+    [RelayCommand(CanExecute = nameof(CanArchiveFiles))]
+    private async Task Archiving()
+    {
+        IsProcessing = true;
+        _progress.Report("Подготовка к архивации...");
+
+        try
+        {
+            // Сохранение клиента
+            if (!string.IsNullOrWhiteSpace(ClientName))
+            {
+                // OrdersRepository.AddClient(ClientName, ClientNameTranslit);
+            }
+            
+            var filesToArchive = SelectedFiles.Count > 0 
+                ? SelectedFiles 
+                : SelectedVariants.FirstOrDefault()?.Files;
+            
+        }
+        catch (Exception ex)
+        {
+            CreateInfo = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
 
     private bool CanMoveFiles() =>
         !string.IsNullOrEmpty(SourceFolder) &&
@@ -225,7 +308,8 @@ public partial class ArchiveViewModel : ViewModelBase
             Directory.CreateDirectory(path);
             CreateInfo = $"Папка создана: {DestinationFolder}";
 
-            var filesToMove = _selectedItem?.Files;
+            //TODO Multiselection
+            var filesToMove = SelectedVariants.First().Files;
             if (filesToMove == null || filesToMove.Count == 0)
             {
                 CreateInfo = "Ошибка: Нет файлов для перемещения.";
@@ -327,44 +411,6 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
-    [RelayCommand]
-    private void ShowFolderFile()
-    {
-        if (string.IsNullOrEmpty(SourceFolder)) return;
-
-        try
-        {
-            if (_selectedItem.Files.Count != 0)
-            {
-                var file = _selectedItem.Files.First().Filename;
-
-                // Кроссплатформенный запуск проводника
-                var psi = new ProcessStartInfo
-                {
-                    FileName = file,
-                    UseShellExecute = true
-                };
-
-                // Выделить файл в папке (специфика Windows)
-                if (OperatingSystem.IsWindows())
-                {
-                    psi.FileName = "explorer.exe";
-                    psi.Arguments = $"/select, \"{file}\"";
-                }
-
-                Process.Start(psi);
-            }
-            else
-            {
-                Process.Start("explorer.exe", SourceFolder);
-            }
-        }
-        catch (Exception ex)
-        {
-            // TODO: Заменить на Avalonia MessageBox
-            Debug.WriteLine($"Ошибка: {ex.Message}");
-        }
-    }
 
     private void AddFilesInListViewByVariant(string folderPath)
     {
@@ -391,5 +437,57 @@ public partial class ArchiveViewModel : ViewModelBase
             .ToList();
 
         return _variants.CreateVariants(files);
+    }
+
+    [RelayCommand]
+    private void ShowFolderOrFiles()
+    {
+        if (string.IsNullOrEmpty(SourceFolder)) return;
+
+        try
+        {
+            var filePaths = new List<string>();
+
+            if (SelectedFiles.Count == 0 && SelectedVariants.Count == 0)
+            {
+                _explorerHelper.OpenAndSelectFiles(SourceFolder, new List<string>());
+
+                return;
+            }
+
+            if (SelectedFiles.Count != 0)
+            {
+                filePaths.AddRange(SelectedFiles.Select(f => f.Filename));
+            }
+            else if (SelectedVariants.First().Files.Count != 0)
+            {
+                filePaths.AddRange(SelectedVariants.First().Files.Select(f => f.Filename));
+            }
+
+            _explorerHelper.OpenAndSelectFiles(SourceFolder, filePaths);
+        }
+        catch (Exception ex)
+        {
+            // TODO: Заменить на Avalonia MessageBox
+            Debug.WriteLine($"Ошибка в ShowFolderFile: {ex.Message}");
+        }
+    }
+
+    private void UpdateItemInfo(object selectedItem)
+    {
+        switch (selectedItem)
+        {
+            case Order order:
+                ItemInfoText = order.ToString();
+                break;
+
+            case Variant variant:
+                ItemInfoText = variant.ToString();
+                break;
+
+            case FileItem file:
+                ItemInfoText = file.ToString();
+                break;
+        }
     }
 }

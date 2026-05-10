@@ -4,6 +4,6 @@ namespace FormaStream.Core.Interfaces
 {
     public interface IFolderPickerService
     {
-        Task<string?> PickFolderAsync(string? initialPath = null, string title = "Выберите папку");//string title = "Выберите папку"
+        Task<string?> PickFolderAsync(string? initialPath, string title);
     }
 }

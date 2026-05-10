@@ -1,8 +1,8 @@
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Xaml.Interactivity;
-using Avalonia.Controls;
 
-namespace ClisheFlow.Behaviors;
+namespace FormaStream;
 
 public class WindowDragBehavior : Behavior<Grid>
 {

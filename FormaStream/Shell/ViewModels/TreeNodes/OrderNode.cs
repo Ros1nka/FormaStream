@@ -11,7 +11,7 @@ namespace FormaStream.Shell.ViewModels.TreeNodes
             Order = order;
         }
 
-        public override string DisplayName => $"Заказ {Order.OrderNumber}";
-        public override string IconSymbol => "📦";
+        public override string DisplayName => $" {Order.OrderNumber} {Order.ClientName} " ?? "<Без номера>";
+        public override string IconSymbol => " ";
     }
 }

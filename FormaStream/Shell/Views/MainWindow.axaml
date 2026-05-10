@@ -5,8 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
-        xmlns:beh="using:FormaStream.Behaviors"
-        xmlns:behaviors="clr-namespace:ClisheFlow.Behaviors"
+        xmlns:formaStream="clr-namespace:FormaStream"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="FormaStream.Shell.View.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -42,7 +41,7 @@
               RowDefinitions="16, 16">
 
             <i:Interaction.Behaviors>
-                <behaviors:WindowDragBehavior />
+                <formaStream:WindowDragBehavior />
             </i:Interaction.Behaviors>
 
             <Button Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Background="Black">

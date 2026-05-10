@@ -8,7 +8,7 @@ using FormaStream.Core.Models;
 
 namespace FormaStream.Core.Services
 {
-    public class FileParserService: IFileParserService
+    public class FileParserService : IFileParserService
     {
         private const int OrderNumberSize = 8;
         private const int ArticleNumberSize = 8;
@@ -42,7 +42,7 @@ namespace FormaStream.Core.Services
         {
             return from path in filePaths select this.FileParser(path);
         }
-        
+
         public FileItem FileParser(string filepath)
         {
             var parts = SplitFilename(filepath);
@@ -122,7 +122,7 @@ namespace FormaStream.Core.Services
 
             //part состоящая из цифр и скобок, с количеством символом >= ArticleNumberSize, с начала до конца part
             string patternString = @"^[0-9()]" + "{" + ArticleNumberSize + ",}$";
-            
+
             //исключаем 1ую часть
             for (var i = 1; i < parts.Length; i++)
             {
@@ -203,8 +203,12 @@ namespace FormaStream.Core.Services
         {
             foreach (var part in parts)
             {
-                return PrintingMachine.GetValueOrDefault(part, NotAvailableConst);
+                if (PrintingMachine.ContainsKey(part.ToUpper()))
+                {
+                    return part.ToUpper();
+                }
             }
+
             return NotAvailableConst;
         }
 

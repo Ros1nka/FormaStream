@@ -6,6 +6,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FormaStream.Core.Interfaces;
+using FormaStream.Shell.View;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FormaStream.Shell.ViewModels;

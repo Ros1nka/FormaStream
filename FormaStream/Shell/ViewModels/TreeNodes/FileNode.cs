@@ -12,7 +12,7 @@ namespace FormaStream.Shell.ViewModels.TreeNodes
             File = file;
         }
 
-        public override string DisplayName => File.Filename;
-        public override string IconSymbol => "📄";
+        public override string DisplayName => File.DisplayName;
+        public override string IconSymbol => " ";
     }
 }

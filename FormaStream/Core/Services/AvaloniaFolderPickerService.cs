@@ -19,7 +19,7 @@ namespace FormaStream.Core.Services
             _getTopLevel = getTopLevel;
         }
 
-        public async Task<string?> PickFolderAsync(string? initialPath = null, string title = "Выберите папку")
+        public async Task<string?> PickFolderAsync(string? initialPath, string title)
         {
             var topLevel = _getTopLevel();
             
