@@ -12,7 +12,6 @@
         <AvaloniaResource Include="Assets\**" />
         <Folder Include="Core\Messages\" />
         <Folder Include="Infrastructure\Configuration\" />
-        <Folder Include="Infrastructure\Data\" />
         <Folder Include="Infrastructure\Monitoring\" />
         <Folder Include="Infrastructure\Reporting\" />
         <Folder Include="Shell\FileManager\ViewModels\" />
@@ -73,5 +72,9 @@
 
     <ItemGroup>
       <AdditionalFiles Include="Shell\Styles\ConfirmationStyles.axaml" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Infrastructure\Migrations\*.sql" />
     </ItemGroup>
 </Project>

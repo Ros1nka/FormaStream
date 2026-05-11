@@ -13,7 +13,7 @@
         <viewModels:ArchiveViewModel />
     </Design.DataContext>
 
-    <Grid>
+    <Grid Background="LightSlateGray">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="300" MinWidth="150" MaxWidth="500" />
             <ColumnDefinition Width="Auto" />
@@ -69,7 +69,7 @@
                                   FontSize="12"
                                   VerticalAlignment="Center" />
                         <TextBox Margin="0,30"
-                                 Text="{Binding DestinationFolder}"
+                                 Text="{Binding ClientDir}"
                                  TextWrapping="Wrap"
                                  IsEnabled="{Binding IsFullPath}"/>
                     </StackPanel>
@@ -92,13 +92,13 @@
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top">
 
-                <TextBlock Text="{Binding ItemInfoText}"
+                <SelectableTextBlock Text="{Binding ItemInfoText}"
                            FontSize="10"
                            FontFamily="Consolas"
                            TextAlignment="Left"
                            TextWrapping="Wrap"
                            Foreground="Black"
-                           FontWeight="DemiBold" />
+                           FontWeight="DemiBold"/>
             </Border>
         </Grid>
 
@@ -108,39 +108,40 @@
                       ResizeBehavior="PreviousAndNext"
                       ShowsPreview="False" />
 
-        <Grid Grid.Column="4" Grid.RowDefinitions="50, *">
+        <Grid Grid.Column="4" RowDefinitions="40, *">
 
             <!-- Панель кнопок управления деревом -->
-            <StackPanel Grid.Row="0" Margin="10,10,10,10"
+            <StackPanel Grid.Row="0" Margin="10,0,10,10" 
                         Orientation="Horizontal" Spacing="8">
-
-                <Button Command="{Binding ExpandAllCommand}"
-                        Width="80" Height="50" FontSize="10"
-                        ToolTip.Tip="Раскрыть всё">
+                
+                <Button Command="{Binding CollapseAllCommand}"
+                        Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                        ToolTip.Tip="Свернуть всё" VerticalAlignment="Top">
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="📂" />
-                        <TextBlock Text="Файлы" />
+                        <TextBlock Text="📁" />
+                        <TextBlock Text="Свернуть" />
                     </StackPanel>
                 </Button>
 
                 <Button Command="{Binding ExpandVariantsOnlyCommand}"
-                        Width="80" Height="50" FontSize="10"
-                        ToolTip.Tip="Раскрыть виды">
+                        Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                        ToolTip.Tip="Раскрыть виды" VerticalAlignment="Top">
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <TextBlock Text="🎯" />
                         <TextBlock Text="Виды" />
                     </StackPanel>
                 </Button>
 
-                <Button Command="{Binding CollapseAllCommand}"
-                        Width="80" Height="50" FontSize="10"
-                        ToolTip.Tip="Свернуть всё">
+                <Button Command="{Binding ExpandAllCommand}" 
+                        Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                        Margin="0" ToolTip.Tip="Раскрыть всё" VerticalAlignment="Top">
                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="📁" />
-                        <TextBlock Text="Свернуть" />
+                        <TextBlock Text="📂" />
+                        <TextBlock Text="Файлы" />
                     </StackPanel>
                 </Button>
             </StackPanel>
+
 
             <!-- TreeView с файлами -->
             <TreeView Grid.Row="1" Margin="10, 24"

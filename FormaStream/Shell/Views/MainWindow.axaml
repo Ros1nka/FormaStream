@@ -6,6 +6,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:formaStream="clr-namespace:FormaStream"
+        xmlns:global="clr-namespace:"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="FormaStream.Shell.View.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -36,99 +37,118 @@
     </Window.DataTemplates>
 
     <Grid RowDefinitions="32, *, 15" Background="LightGray">
-        <Grid Grid.Row="0" Grid.Column="0" Background="BurlyWood"
-              ColumnDefinitions="100 100, 120, 120, *, 20, 20, 20, 20"
-              RowDefinitions="16, 16">
+        
+        <!-- верхняя панель -->
+        <Border Grid.Row="0" Grid.Column="0">
 
             <i:Interaction.Behaviors>
                 <formaStream:WindowDragBehavior />
             </i:Interaction.Behaviors>
 
-            <Button Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Background="Black">
-                <Image Source="/Assets/FS dark long.png" Height="32" Stretch="Fill"></Image>
-            </Button>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%, 0%">
+                    <GradientStop Color="#ff000015" Offset="0.2" />
+                    <GradientStop Color="LightSlateGray" Offset="0.8" />
+                </LinearGradientBrush>
+            </Border.Background>
 
-            <Button Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" Background="Black"
-                    Command="{Binding ShowClisheViewCommand}">
-                <Image Source="/Assets/FS dark long.png" Height="32" Stretch="Uniform"></Image>
-            </Button>
+            <Grid ColumnDefinitions="100 100, 100, 100, *, 20, 20, 20, 20" RowDefinitions="16, 16">
 
-            <Button Grid.Column="2" Grid.Row="0" Grid.RowSpan="2"
-                    Height="28" Width="110" Margin="5, 0" Padding="0"
-                    FontSize="14" HorizontalContentAlignment="Center" FontWeight="Bold"
-                    VerticalContentAlignment="Center" Content="Архив"
-                    Command="{Binding ShowArchiveViewCommand}" />
+                <Button Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Background="Black">
+                    <Image Source="/Assets/FS dark long.png" Height="32" Stretch="Uniform"></Image>
+                </Button>
 
-            <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
-                    Height="28" Width="110" Margin="5, 0" Padding="0"
-                    FontSize="14" HorizontalContentAlignment="Center" FontWeight="Bold"
-                    VerticalContentAlignment="Center" Content="Трафарет"
-                    Command="{Binding ShowSilkViewCommand}" />
+                <Button Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                        Height="28" Width="80" Margin="5, 0" Padding="0"
+                        FontSize="14" FontWeight="Normal" HorizontalAlignment="Right"
+                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                        Content="Клише" Foreground="Wheat" Background="Transparent"
+                        Command="{Binding ShowClisheViewCommand}">
+                </Button>
 
-            <Rectangle Grid.Row="0" Grid.Column="4" Fill="GreenYellow" />
+                <Button Grid.Column="2" Grid.Row="0" Grid.RowSpan="2"
+                        Height="28" Width="80" Margin="5, 0" Padding="0"
+                        FontSize="14" FontWeight="Normal" HorizontalAlignment="Center"
+                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                        Content="Архив" Foreground="SkyBlue" Background="Transparent"
+                        Command="{Binding ShowArchiveViewCommand}" />
 
-            <Button Grid.Row="0" Grid.Column="5" Width="16" Height="16"
-                    FontSize="10" Padding="3,0,3,0" HorizontalAlignment="Center"
-                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                    Command="{Binding SnapToLeftHalfCommand}"
-                    CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
-                <Button.Styles>
-                    <Style Selector="Button">
-                        <Setter Property="Content" Value="◧" />
-                    </Style>
-                    <Style Selector="Button:pointerover">
-                        <Setter Property="Content" Value="◨" />
-                    </Style>
-                </Button.Styles>
-            </Button>
+                <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
+                        Height="28" Width="80" Margin="5, 0" Padding="0"
+                        FontSize="14" FontWeight="Normal" HorizontalAlignment="Left"
+                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                        Content="Трафарет" Foreground="LimeGreen" Background="Transparent"
+                        Command="{Binding ShowSilkViewCommand}" />
 
-            <Button Grid.Row="0" Grid.Column="6" Width="16" Height="16"
-                    FontSize="12" Padding="3,0,3,0" HorizontalAlignment="Center"
-                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                    Command="{Binding MinimizeWindowCommand}"
-                    CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
-                <Button.Styles>
-                    <Style Selector="Button">
-                        <Setter Property="Content" Value="_" />
-                    </Style>
-                    <Style Selector="Button:pointerover">
-                        <Setter Property="Content" Value="—" />
-                    </Style>
-                </Button.Styles>
-            </Button>
+                <Button Grid.Row="0" Grid.Column="5" Width="16" Height="16"
+                        FontSize="10" Padding="3,0,3,0" HorizontalAlignment="Center"
+                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                        Command="{Binding SnapToLeftHalfCommand}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+                    <Button.Styles>
+                        <Style Selector="Button">
+                            <Setter Property="Content" Value="◧" />
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Content" Value="◨" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
 
-            <Button Grid.Row="0" Grid.Column="7" Width="16" Height="16"
-                    FontSize="10" Padding="0,0,0,0" HorizontalAlignment="Center"
-                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                    Command="{Binding MaximizeRestoreWindowCommand}"
-                    CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
-                <Button.Styles>
-                    <Style Selector="Button">
-                        <Setter Property="Content" Value="□" />
-                    </Style>
-                    <Style Selector="Button:pointerover">
-                        <Setter Property="Content" Value="❐" />
-                    </Style>
-                </Button.Styles>
-            </Button>
+                <Button Grid.Row="0" Grid.Column="6" Width="16" Height="16"
+                        FontSize="12" Padding="3,0,3,0" HorizontalAlignment="Center"
+                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                        Command="{Binding MinimizeWindowCommand}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+                    <Button.Styles>
+                        <Style Selector="Button">
+                            <Setter Property="Content" Value="_" />
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Content" Value="—" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
 
-            <Button Grid.Row="0" Grid.Column="8" Width="16" Height="16"
-                    FontSize="12" Padding="0, 0, 0, 3" HorizontalAlignment="Center"
-                    VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                    Command="{Binding RequestAppCloseCommand}"
-                    Content="×">
-                <Button.Styles>
-                    <Style Selector="Button:pointerover">
-                        <Setter Property="Background" Value="Red" />
-                    </Style>
-                </Button.Styles>
-            </Button>
-        </Grid>
+                <Button Grid.Row="0" Grid.Column="7" Width="16" Height="16"
+                        FontSize="10" Padding="0,0,0,0" HorizontalAlignment="Center"
+                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                        Command="{Binding MaximizeRestoreWindowCommand}"
+                        CommandParameter="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Window}}">
+                    <Button.Styles>
+                        <Style Selector="Button">
+                            <Setter Property="Content" Value="□" />
+                        </Style>
+                        <Style Selector="Button:pointerover">
+                            <Setter Property="Content" Value="❐" />
+                        </Style>
+                    </Button.Styles>
+                </Button>
+
+                <Border Grid.Row="0" Grid.Column="8" Width="16" Height="16" Background="OrangeRed" CornerRadius="3">
+                    <Button Width="16" Height="16"
+                            FontSize="12" Padding="0, 0, 0, 3" HorizontalAlignment="Center"
+                            VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                            Command="{Binding RequestAppCloseCommand}"
+                            Content="×" Foreground="White" Background="Red">
+                    </Button>
+                </Border>
+            </Grid>
+        </Border>
 
         <!-- Контент меняется в зависимости от выбранной вкладки -->
         <ContentControl Grid.Row="1" Grid.Column="0"
                         Content="{Binding CurrentView}" />
 
-        <Grid Grid.Row="2" Grid.Column="0" Background="Gray"></Grid>
+        <Border Grid.Row="2" Grid.Column="0">
+
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%, 0%">
+                    <GradientStop Color="#ff000020" Offset="0.2" />
+                    <GradientStop Color="LightSlateGray" Offset="0.8" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid Grid.Row="2" Grid.Column="0"></Grid>
+        </Border>
     </Grid>
 </Window>

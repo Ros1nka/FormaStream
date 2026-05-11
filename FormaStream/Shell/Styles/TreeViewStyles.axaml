@@ -48,7 +48,7 @@
                         <ItemsPresenter x:Name="PART_ItemsPresenter"
                                         Grid.Row="1"
                                         ItemsPanel="{TemplateBinding ItemsPanel}"
-                                        Margin="48,8,0,0"
+                                        Margin="24,8,0,0"
                                         IsVisible="{TemplateBinding IsExpanded}" />
                     </Grid>
                 </ControlTemplate>
@@ -60,6 +60,8 @@
     <!-- Селектор [ItemCount=0] более специфичен, поэтому переопределяет Margin="0,3" выше -->
     <Style Selector="TreeViewItem[ItemCount=0]">
         <Setter Property="Margin" Value="0" />
+        <Setter Property="Foreground" Value="#ff202020"/>
+        <Setter Property="FontSize" Value="11"/>
     </Style>
 
     <!-- ========== ВЫДЕЛЕНИЕ / НАВЕДЕНИЕ ========== -->
@@ -105,7 +107,7 @@
                                   Width="12" Height="10"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
-                                  Foreground="Gray" />
+                                  Foreground="Black" />
                     </Border>
                 </DataTemplate>
             </Setter.Value>
@@ -138,7 +140,7 @@
                 <RotateTransform Angle="90" CenterX="1" CenterY="1" />
             </Setter.Value>
         </Setter>
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="#DBEAFE" />
     </Style>
     
     <!-- Изменение фона при раскрытии -->

@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:view="clr-namespace:FormaStream.Shell.View"
+        xmlns:formaStream="clr-namespace:FormaStream"
         x:Class="FormaStream.Shell.View.ConfirmationDialog"
         Title="Подтверждение"
         Width="480" Height="280"
@@ -11,7 +12,7 @@
         SizeToContent="WidthAndHeight"
         TransparencyLevelHint="AcrylicBlur"
         UseLayoutRounding="True">
-    
+
     <!-- TODO:Настроить blur и shadow-->
     <!-- ExtendClientAreaToDecorationsHint="True" -->
 
@@ -20,6 +21,10 @@
 
         <!-- Карточка с тенью -->
         <Border Classes="card">
+
+            <Interaction.Behaviors>
+                <formaStream:WindowDragBehavior />
+            </Interaction.Behaviors>
 
             <Border.Background>
                 <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
