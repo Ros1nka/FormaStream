@@ -8,6 +8,8 @@
         xmlns:formaStream="clr-namespace:FormaStream"
         xmlns:global="clr-namespace:"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        Width="1200" MinWidth="700"
+        Height="800" MinHeight="600"
         x:Class="FormaStream.Shell.View.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
@@ -36,8 +38,8 @@
         </DataTemplate>
     </Window.DataTemplates>
 
-    <Grid RowDefinitions="32, *, 15" Background="LightGray">
-        
+    <Grid RowDefinitions="32, *" Background="LightGray">
+
         <!-- верхняя панель -->
         <Border Grid.Row="0" Grid.Column="0">
 
@@ -52,7 +54,7 @@
                 </LinearGradientBrush>
             </Border.Background>
 
-            <Grid ColumnDefinitions="100 100, 100, 100, *, 20, 20, 20, 20" RowDefinitions="16, 16">
+            <Grid ColumnDefinitions="100 100, 100, 100, *, 80, 300, 20, 20, 20, 20" RowDefinitions="16, 16">
 
                 <Button Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Background="Black">
                     <Image Source="/Assets/FS dark long.png" Height="32" Stretch="Uniform"></Image>
@@ -68,19 +70,46 @@
 
                 <Button Grid.Column="2" Grid.Row="0" Grid.RowSpan="2"
                         Height="28" Width="80" Margin="5, 0" Padding="0"
-                        FontSize="14" FontWeight="Normal" HorizontalAlignment="Center"
-                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
-                        Content="Архив" Foreground="SkyBlue" Background="Transparent"
-                        Command="{Binding ShowArchiveViewCommand}" />
-
-                <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
-                        Height="28" Width="80" Margin="5, 0" Padding="0"
                         FontSize="14" FontWeight="Normal" HorizontalAlignment="Left"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                         Content="Трафарет" Foreground="LimeGreen" Background="Transparent"
                         Command="{Binding ShowSilkViewCommand}" />
 
-                <Button Grid.Row="0" Grid.Column="5" Width="16" Height="16"
+                <Button Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
+                        Height="28" Width="80" Margin="5, 0" Padding="0"
+                        FontSize="14" FontWeight="Normal" HorizontalAlignment="Center"
+                        VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                        Content="Архив" Foreground="SkyBlue" Background="Transparent"
+                        Command="{Binding ShowArchiveViewCommand}" />
+
+                <!-- Отзывы -->
+                <TextBlock Grid.Row="0" Grid.Column="4" Grid.RowSpan="2" Text="{Binding FeedbackStatus}"
+                           FontSize="10" Foreground="PaleGoldenrod"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"
+                           MinHeight="16" />
+
+                <Button Grid.Row="0" Grid.Column="5" Content="🐛 Ошибка"
+                        Command="{Binding SubmitErrorCommand}"
+                        Width="70" Height="12" FontSize="9" Margin="5, 0" Padding="0"
+                        Background="#FEE2E2" Foreground="#991B1B" BorderThickness="0" CornerRadius="3" />
+
+                <Button Grid.Row="1" Grid.Column="5" Content="💡 Пожелание"
+                        Command="{Binding SubmitWishCommand}"
+                        Width="70" Height="12" FontSize="9" Margin="5, 0" Padding="0"
+                        Background="#DBEAFE" Foreground="#1E40AF" BorderThickness="0" CornerRadius="3" />
+
+                <TextBox Grid.Row="0" Grid.Column="6" Grid.RowSpan="2" Text="{Binding FeedbackText}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="28"
+                         PlaceholderText="Опишите проблему или идею..."
+                         FontSize="11"
+                         CornerRadius="6"
+                         Padding="8" />
+
+                <!-- Кнопки управления -->
+                <Button Grid.Row="0" Grid.Column="7" Width="16" Height="16"
                         FontSize="10" Padding="3,0,3,0" HorizontalAlignment="Center"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                         Command="{Binding SnapToLeftHalfCommand}"
@@ -95,7 +124,7 @@
                     </Button.Styles>
                 </Button>
 
-                <Button Grid.Row="0" Grid.Column="6" Width="16" Height="16"
+                <Button Grid.Row="0" Grid.Column="8" Width="16" Height="16"
                         FontSize="12" Padding="3,0,3,0" HorizontalAlignment="Center"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                         Command="{Binding MinimizeWindowCommand}"
@@ -110,7 +139,7 @@
                     </Button.Styles>
                 </Button>
 
-                <Button Grid.Row="0" Grid.Column="7" Width="16" Height="16"
+                <Button Grid.Row="0" Grid.Column="9" Width="16" Height="16"
                         FontSize="10" Padding="0,0,0,0" HorizontalAlignment="Center"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
                         Command="{Binding MaximizeRestoreWindowCommand}"
@@ -125,7 +154,7 @@
                     </Button.Styles>
                 </Button>
 
-                <Border Grid.Row="0" Grid.Column="8" Width="16" Height="16" Background="OrangeRed" CornerRadius="3">
+                <Border Grid.Row="0" Grid.Column="10" Width="16" Height="16" Background="OrangeRed" CornerRadius="3">
                     <Button Width="16" Height="16"
                             FontSize="12" Padding="0, 0, 0, 3" HorizontalAlignment="Center"
                             VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
@@ -139,16 +168,5 @@
         <!-- Контент меняется в зависимости от выбранной вкладки -->
         <ContentControl Grid.Row="1" Grid.Column="0"
                         Content="{Binding CurrentView}" />
-
-        <Border Grid.Row="2" Grid.Column="0">
-
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%, 0%">
-                    <GradientStop Color="#ff000020" Offset="0.2" />
-                    <GradientStop Color="LightSlateGray" Offset="0.8" />
-                </LinearGradientBrush>
-            </Border.Background>
-            <Grid Grid.Row="2" Grid.Column="0"></Grid>
-        </Border>
     </Grid>
 </Window>

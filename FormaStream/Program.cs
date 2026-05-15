@@ -1,6 +1,5 @@
 ﻿using Avalonia;
 using System;
-using System.Linq;
 
 namespace FormaStream;
 
@@ -13,6 +12,7 @@ sealed class Program
         {
             BuildAvaloniaApp()
                 .StartWithClassicDesktopLifetime(args);
+
         }
         catch (Exception ex)
         {

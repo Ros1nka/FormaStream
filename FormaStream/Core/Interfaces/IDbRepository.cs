@@ -6,13 +6,13 @@ namespace FormaStream.Core.Interfaces;
 
 public interface IDbRepository
 {
+    Task AddClientAsync(List<Variant> variants);
+    
+    Task<string> GetClientByTranslitAsync(string translit);
+    
     Task SaveVariantsAsync(IEnumerable<Variant> variants);
-    
-    Task<List<Variant>> GetVariantsByOrderAsync(string orderNumber);
-    
-    Task SaveClientAsync(string nameRu, IEnumerable<string> transliterations);
-    
-    Task<string?> GetClientNameRuAsync(string anyNameVariant);
-    
-    Task<List<(string NameRu, string TransliterationsJson)>> GetAllClientsAsync();
+
+    Task<Dictionary<string, string>> LoadClientCacheAsync();
+
+    string[]? GetClientNameFromCache(Dictionary<string, string> cache, string input);
 }

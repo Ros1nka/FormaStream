@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Collections;
 using FormaStream.Core.Interfaces;
@@ -12,8 +13,6 @@ using FormaStream.Core.Models;
 using FormaStream.Shell.ViewModels.TreeNodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Dapper;
-using Microsoft.Data.Sqlite;
 
 namespace FormaStream.Shell.ViewModels;
 
@@ -34,17 +33,14 @@ public partial class ArchiveViewModel : ViewModelBase
     private bool _isProcessing;
 
     [ObservableProperty] private List<FileItem> _selectedFiles = [];
+    [ObservableProperty] private ObservableCollection<string> _progressLog = [];
+    [ObservableProperty] private int _progressPercent;
     [ObservableProperty] private string _isProcessingValue = string.Empty;
-    [ObservableProperty] private string _clientDir = "Название заказчика";
-    [ObservableProperty] private string _clientName = "_clientName";
-    [ObservableProperty] private string _clientNameTranslit = "_clientNameTranslit";
-    [ObservableProperty] private string _fullNameTranslit = "FullNameTranslit";
     [ObservableProperty] private string _itemInfoText = string.Empty;
     [ObservableProperty] private bool _isYesArchiveDirection;
-    [ObservableProperty] private bool _isFullPath;
-
+    [ObservableProperty] private bool _isFullPath = true;
+ 
     public AvaloniaList<TreeNode> TreeNodes { get; } = [];
-    private TreeNode? _selectedNode;
 
     private string _isFolderExist = string.Empty;
 
@@ -73,14 +69,12 @@ public partial class ArchiveViewModel : ViewModelBase
 
         _dbRepository = dbRepository;
 
-        //В конструкторе подписываемся на CollectionChanged
+        // подписываемся на CollectionChanged
         _selectedVariants.CollectionChanged += (_, _) =>
             ArchivingCommand?.NotifyCanExecuteChanged();
-
-        // DatabaseContext.InitializeDatabase();
     }
 
-    // --- Логика свойств (Setters with logic) ---
+    // --- Логика свойств ---
     public string IsFolderExist
     {
         get => _isFolderExist;
@@ -89,20 +83,19 @@ public partial class ArchiveViewModel : ViewModelBase
 
     public TreeNode? SelectedNode
     {
-        get => _selectedNode;
+        get;
         set
         {
-            if (SetProperty(ref _selectedNode, value))
+            if (SetProperty(ref field, value))
             {
-                // ClientName = OrdersRepository.GetClient(value.ClientName);
                 if (value is VariantNode variantNode)
                 {
                     SelectedVariants.Clear();
                     SelectedFiles.Clear();
 
-                    SelectedVariants.Add(variantNode.Variant);
+                    SelectedVariants.Add(variantNode.SourceData);
 
-                    UpdateItemInfo(variantNode.Variant);
+                    UpdateItemInfo(variantNode.SourceData);
                 }
 
                 if (value is OrderNode orderNode)
@@ -110,28 +103,31 @@ public partial class ArchiveViewModel : ViewModelBase
                     SelectedVariants.Clear();
                     SelectedFiles.Clear();
 
-                    foreach (var variant in orderNode.Order.Variants)
-                        SelectedVariants.Add(variant);
+                    foreach (var child in orderNode.Children)
+                    {
+                        // обновлять модель или так (инфа не верная)
+                        foreach (var variant in orderNode.SourceData.Variants)
+                        {
+                            if (child.SourceData == variant)
+                                SelectedVariants.Add(variant);
+                        }
+                    }
 
-                    UpdateItemInfo(orderNode.Order);
+                    UpdateItemInfo(orderNode.SourceData);
                 }
 
                 if (value is FileNode fileNode)
                 {
                     SelectedVariants.Clear();
                     SelectedFiles.Clear();
-                    SelectedFiles.Add(fileNode.File);
-                    UpdateItemInfo(fileNode.File);
+                    SelectedFiles.Add(fileNode.SourceData);
+                    UpdateItemInfo(fileNode.SourceData);
                 }
-
-                //TODO Multiselection
-                // DestinationFolder = SelectedVariants.First().VariantNumber ?? "DestinationFolder N/A";
-                // ClientNameTranslit = SelectedVariants.First().ClientName ?? "ClientNameTranslit N/A";
             }
         }
     }
 
-    // 🔹 Команда: Раскрыть ВСЕ узлы
+    // Кнопка: Раскрыть все узлы
     [RelayCommand]
     private void ExpandAll()
     {
@@ -139,7 +135,7 @@ public partial class ArchiveViewModel : ViewModelBase
             root.SetExpandedRecursive(true);
     }
 
-    // 🔹 Команда: Свернуть ВСЕ узлы
+    // Кнопка: Свернуть все узлы
     [RelayCommand]
     private void CollapseAll()
     {
@@ -147,13 +143,21 @@ public partial class ArchiveViewModel : ViewModelBase
             root.SetExpandedRecursive(false);
     }
 
-    // 🔹 Команда: Раскрыть только виды
+    // Кнопка: Показать виды
     [RelayCommand]
     private void ExpandVariantsOnly()
     {
         foreach (var root in TreeNodes)
             root.ExpandVariantsRecursive(root, 0);
     }
+
+    // Кнопка: Обновить дерево
+    [RelayCommand]
+    private async Task ReloadTree()
+    {
+        await LoadTreeAsync(SourceFolder);
+    }
+
 
     [RelayCommand]
     private async Task OpenSourceFolderAsync()
@@ -175,7 +179,7 @@ public partial class ArchiveViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanSelectTargetFolder))]
     private async Task SelectTargetFolderAsync()
     {
-        string? selectedPath = await _folderPicker.PickFolderAsync(SourceFolder, "Выберите целевую папку");
+        var selectedPath = await _folderPicker.PickFolderAsync(SourceFolder, "Выберите целевую папку");
 
         if (!string.IsNullOrEmpty(selectedPath))
         {
@@ -184,62 +188,136 @@ public partial class ArchiveViewModel : ViewModelBase
     }
 
 
+    private void SubscribeToNodeChanges(TreeNode node)
+    {
+        node.ModifiedChanged += (s, e) => { ArchivingCommand?.NotifyCanExecuteChanged(); };
+
+        foreach (var child in node.Children)
+            SubscribeToNodeChanges(child);
+    }
+
     private async Task LoadTreeAsync(string folderPath)
     {
         TreeNodes.Clear();
         if (!Directory.Exists(folderPath)) return;
 
         IsProcessing = true;
-        IsProcessingValue = "Загрузка структуры...";
-        
-        // var conn = new SqliteConnection("Data Source=formastream.db");
-        // var tables = await conn.QueryAsync<string>("SELECT name FROM sqlite_master WHERE type='table'");
-        // foreach (var t in tables) Console.WriteLine(t);
+        LogProgress("Загрузка структуры...");
 
         try
         {
-            await Task.Run(() =>
+            var filePaths = Directory.EnumerateFiles(folderPath)
+                .Where(file =>
+                    file.EndsWith(".len", StringComparison.OrdinalIgnoreCase) &&
+                    !file.EndsWith("rot.len", StringComparison.OrdinalIgnoreCase) &&
+                    !file.EndsWith("cdi.len", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            //  Парсинг файлов (асинхронно, с БД-запросами)
+            var files = await _fileParser.ParseFilesAsync(filePaths);
+
+            // Бизнес-логика: группировка (синхронно)
+            var variants = _variants.CreateVariants(files);
+            var orders = _orders.GroupByOrder(variants);
+
+            // Кэш всех клиентов один раз
+            var clientCache = await _dbRepository.LoadClientCacheAsync();
+
+            // Создаём узлы дерева + загружаем данные из БД
+            var nodes = new List<OrderNode>();
+            var processed = 0;
+            var progressMax = files.Count;
+            var currentProgress = 0;
+
+            foreach (var order in orders)
             {
-                var files = Directory.EnumerateFiles(folderPath)
-                    .Where(file =>
-                        file.EndsWith(".len", StringComparison.OrdinalIgnoreCase) &&
-                        !file.EndsWith("rot.len", StringComparison.OrdinalIgnoreCase) &&
-                        !file.EndsWith("cdi.len", StringComparison.OrdinalIgnoreCase))
-                    .Select(_fileParser.FileParser)
-                    .ToList();
+                var clientName =
+                    _dbRepository.GetClientNameFromCache(clientCache, order.Variants.First().Files.First().Filename);
 
-                var variants = _variants.CreateVariants(files);
-
-                var orders = _orders.GroupByOrder(variants);
-
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                if (clientName != null)
                 {
-                    foreach (var order in orders)
+                    order.ClientName = clientName[0];
+                    order.ClientNameTranslit = clientName[1];
+
+                    foreach (var variant in order.Variants)
                     {
-                        var orderNode = new OrderNode(order);
+                        variant.ClientName = clientName[0];
+                        variant.ClientNameTranslit = clientName[1];
 
-                        foreach (var variant in order.Variants)
+                        foreach (var file in variant.Files)
                         {
-                            var variantNode = new VariantNode(variant);
-
-                            foreach (var file in variant.Files)
-                            {
-                                variantNode.Children.Add(new FileNode(file));
-                            }
-
-                            orderNode.Children.Add(variantNode);
+                            file.ClientName = clientName[0];
+                            file.ClientNameTranslit = clientName[1];
                         }
-
-                        TreeNodes.Add(orderNode);
                     }
-                });
+                }
+
+                var orderNode = new OrderNode(order);
+
+                foreach (var variant in order.Variants)
+                {
+                    var variantNode = new VariantNode(variant);
+
+                    variantNode.Parent = orderNode;
+
+                    orderNode.Children.Add(variantNode);
+
+                    foreach (var file in variant.Files)
+                    {
+                        var fileNode = new FileNode(file);
+
+                        fileNode.Parent = variantNode;
+
+                        variantNode.Children.Add(fileNode);
+
+                        currentProgress++;
+                    }
+                }
+
+                nodes.Add(orderNode);
+
+                // Прогресс: обновляем после каждого заказа
+                ProgressPercent = (nodes.Sum(n => n.SourceData.TotalFiles) * 100) / progressMax;
+                LogProgress($"Обработано заказов: {nodes.Count}/{orders.Count}");
+            }
+
+            // Обновление UI в главном потоке
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                foreach (var node in nodes)
+                    TreeNodes.Add(node);
+
+                LogProgress($"✓ Загружено {files.Count} файлов в {orders.Count} заказов");
             });
+        }
+        catch (Exception ex)
+        {
+            LogProgress($"Ошибка загрузки: {ex.Message}");
+            Debug.WriteLine($"[LoadTreeAsync] {ex}");
         }
         finally
         {
             IsProcessing = false;
-            IsProcessingValue = "";
         }
+
+        // Подписка на изменения
+        foreach (var node in TreeNodes)
+            SubscribeToNodeChanges(node);
+    }
+
+
+    // есть ли неподтверждённые изменения (рекурсия)
+    private bool HasUnconfirmedChanges() => CheckNodeList(TreeNodes);
+
+    private bool CheckNodeList(AvaloniaList<TreeNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.IsModified) return true;
+            if (CheckNodeList(node.Children)) return true;
+        }
+
+        return false;
     }
 
 
@@ -247,46 +325,49 @@ public partial class ArchiveViewModel : ViewModelBase
         !string.IsNullOrEmpty(SourceFolder) &&
         !string.IsNullOrEmpty(TargetFolder) &&
         SelectedVariants.Count > 0 &&
-        !IsProcessing;
+        !IsProcessing &&
+        !HasUnconfirmedChanges();
 
     [RelayCommand(CanExecute = nameof(CanArchiving))]
     private async Task Archiving()
     {
         IsProcessing = true;
-        _progress.Report("Подготовка к архивации...");
+        LogProgress("Подготовка к архивации...");
 
         try
         {
-            // Сохраняем в БД (асинхронно, без блокировки UI)
-            await _dbRepository.SaveVariantsAsync(SelectedVariants);
-            
-            _progress.Report("✓ Данные сохранены в базе");
-
             var filesToArchive =
                 SelectedVariants.ToDictionary(v => v.VariantNumber, v => new List<FileItem>(v.Files));
 
             if (filesToArchive.Count == 0)
             {
-                ItemInfoText = "Ошибка: Нет файлов для архивации.";
+                LogProgress("Ошибка: Нет файлов для архивации.");
                 return;
             }
 
-            // Проверяем имя на безопасность
-            var safeClientDir = SanitizeForZip(ClientDir);
+            // Сохраняем в БД (асинхронно, без блокировки UI)
+            await _dbRepository.SaveVariantsAsync(SelectedVariants);
+            LogProgress("✓ База клиентов обновлена");
+            LogProgress("✓ Данные сохранены в базе");
 
             var progressMax = filesToArchive.Values.Sum(v => v.Count);
-            var currentProgress = 0; // Счётчик обработанных файлов
+            var currentProgress = 0;
+
+            var safeClientDir = string.Empty;
 
             // Фоновая работа с файлами. Await ждёт завершения, finally
             await Task.Run(() =>
             {
-                // Формируем целевой путь
-                var targetDir = IsFullPath
-                    ? Path.Combine(TargetFolder, safeClientDir)
-                    : Path.Combine(TargetFolder);
-
                 foreach (var variant in filesToArchive.Keys)
                 {
+                    // Проверяем имя на безопасность
+                    safeClientDir = SanitizeForZip(filesToArchive[variant].First().ClientName);
+
+                    // Формируем целевой путь
+                    var targetDir = IsFullPath
+                        ? Path.Combine(TargetFolder, safeClientDir)
+                        : Path.Combine(TargetFolder);
+
                     var variantDir = Path.Combine(targetDir, variant);
 
                     //Создаём папку
@@ -303,19 +384,21 @@ public partial class ArchiveViewModel : ViewModelBase
 
                         foreach (var file in files)
                         {
-                            currentProgress++;
-                            _progress.Report(
-                                $"{currentProgress}/{progressMax}, добавляется {Path.GetFileName(file.Filename)}");
+                            var filePath = Path.Combine(file.FilePath, file.Filename);
 
-                            archive.CreateEntryFromFile(file.Filename, Path.GetFileName(file.Filename));
+                            currentProgress++;
+                            ProgressPercent = (currentProgress * 100) / progressMax;
+                            LogProgress($"{currentProgress}/{progressMax}, добавляется {file.Filename}");
+
+                            archive.CreateEntryFromFile(filePath, file.Filename);
 
                             try
                             {
-                                if (File.Exists(file.Filename)) File.Delete(file.Filename);
+                                if (File.Exists(filePath)) File.Delete(filePath);
                             }
                             catch (Exception ex)
                             {
-                                _progress.Report($"Не удалось удалить файл {files}: {ex.Message}");
+                                LogProgress($"Не удалось удалить файл {filePath}: {ex.Message}");
                             }
                         }
                     }
@@ -323,37 +406,43 @@ public partial class ArchiveViewModel : ViewModelBase
                     {
                         foreach (var file in files)
                         {
-                            currentProgress++;
-                            _progress.Report(
-                                $"{currentProgress}/{progressMax}, перемещается {Path.GetFileName(file.Filename)}");
+                            var filePath = Path.Combine(file.FilePath, file.Filename);
 
-                            var destFile = Path.Combine(variantDir, Path.GetFileName(file.Filename));
+                            currentProgress++;
+                            LogProgress($"{currentProgress}/{progressMax}, перемещается {file.Filename}");
+
+                            var destFile = Path.Combine(variantDir, file.Filename);
 
                             if (File.Exists(destFile)) File.Delete(destFile);
 
-                            File.Move(file.Filename, destFile);
+                            File.Move(filePath, destFile);
                         }
                     }
                 }
             });
 
+            foreach (var variant in SelectedVariants)
+            {
+                await SyncTreeAfterOperation(variant);
+            }
+
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                ItemInfoText = IsYesArchiveDirection
+                var text = IsYesArchiveDirection
                     ? $"Архив создан: {safeClientDir}.zip\nФайлов: {progressMax}"
                     : $"Перемещено файлов: {progressMax}";
-                _progress.Report("Готово!");
+                LogProgress(text);
+                LogProgress("Готово!");
             });
         }
         catch (Exception ex)
         {
-            ItemInfoText = $"Ошибка архивации: {ex.Message}";
-            Debug.WriteLine($"[Archiving] {ex}");
+            LogProgress($"Ошибка архивации: {ex.Message}");
         }
         finally
         {
             IsProcessing = false;
-            _progress.Report(string.Empty);
+            LogProgress(string.Empty);
         }
     }
 
@@ -381,16 +470,24 @@ public partial class ArchiveViewModel : ViewModelBase
     }
 
 
-    // UI сообщение при смене адреса
-    private string DestinationFolderTextChanged()
+    private async Task SyncTreeAfterOperation(Variant variant)
     {
-        if (string.IsNullOrEmpty(SourceFolder)) return "";
+        foreach (var file in variant.Files)
+        {
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                FileNode? fileNode = null;
 
-        var fullPath = Path.Combine(SourceFolder, ClientDir);
+                foreach (var node in TreeNodes)
+                {
+                    fileNode = node.FindFileNode(file);
+                    if (fileNode != null) break;
+                }
 
-        return Directory.Exists(fullPath) ? "Папка уже существует!" : "";
+                fileNode?.RemoveAndClean(TreeNodes);
+            });
+        }
     }
-
 
     private bool CanShowFolderOrFiles() => !string.IsNullOrEmpty(SourceFolder);
 
@@ -412,37 +509,56 @@ public partial class ArchiveViewModel : ViewModelBase
 
             if (SelectedFiles.Count != 0)
             {
-                filePaths.AddRange(SelectedFiles.Select(f => f.Filename));
+                filePaths.AddRange(SelectedFiles.Select(f => Path.Combine(f.FilePath, f.Filename)));
             }
             else if (SelectedVariants.First().Files.Count != 0)
             {
-                filePaths.AddRange(SelectedVariants.First().Files.Select(f => f.Filename));
+                foreach (var variant in SelectedVariants)
+                {
+                    filePaths.AddRange(variant.Files
+                        .Select(f => Path.Combine(f.FilePath, f.Filename)));
+                }
             }
 
             _explorerHelper.OpenAndSelectFiles(SourceFolder, filePaths);
         }
         catch (Exception ex)
         {
-            // TODO: Заменить на Avalonia MessageBox
-            Debug.WriteLine($"Ошибка в ShowFolderFile: {ex.Message}");
+            LogProgress($"Ошибка при просмотре файла: {ex.Message}");
         }
     }
 
+    // Вспомогательный метод для единого формата логирования
+    private void LogProgress(string message)
+    {
+        IsProcessingValue = message;
 
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        ProgressLog.Add($"[{timestamp}] {message}");
+
+        Debug.WriteLine($"[PROGRESS] {message}");
+    }
+
+
+    //InFo
     private void UpdateItemInfo(object selectedItem)
     {
+        Debug.WriteLine($"[UpdateItemInfo] Type: {selectedItem.GetType().FullName ?? "null"}");
+
         switch (selectedItem)
         {
             case Order order:
                 ItemInfoText = order.ToString();
                 break;
-
             case Variant variant:
                 ItemInfoText = variant.ToString();
                 break;
-
             case FileItem file:
                 ItemInfoText = file.ToString();
+                break;
+            default:
+                LogProgress("⚠️ No match! selectedItem is null or unexpected type");
+                ItemInfoText = selectedItem.ToString() ?? "Нет данных";
                 break;
         }
     }

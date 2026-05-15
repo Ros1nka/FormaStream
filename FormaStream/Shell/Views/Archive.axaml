@@ -6,160 +6,314 @@
              xmlns:treeNodes="clr-namespace:FormaStream.Shell.ViewModels.TreeNodes"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="FormaStream.Shell.View.Archive"
-             x:DataType="viewModels:ArchiveViewModel">
+             x:DataType="viewModels:ArchiveViewModel"
+             Focusable="True">
 
 
     <Design.DataContext>
         <viewModels:ArchiveViewModel />
     </Design.DataContext>
 
-    <Grid Background="LightSlateGray">
+    <Grid Background="#ff000015" RowDefinitions="*, 15">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300" MinWidth="150" MaxWidth="500" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="200" MinWidth="100" />
+            <ColumnDefinition Width="300" MinWidth="250" MaxWidth="800" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" MinWidth="300" />
         </Grid.ColumnDefinitions>
 
-        <!-- Кнопки управления -->
-        <Grid Grid.Column="0" Margin="20" RowDefinitions="100, 100, 100, 100, 100, *" ColumnDefinitions="100, *">
-            <Button Grid.Row="0" Grid.Column="0" Width="90" Height="90" Margin="5"
-                    Command="{Binding OpenSourceFolderCommand}"
-                    IsEnabled="true">
-                <TextBlock Text="Выбрать папку" TextWrapping="Wrap"> </TextBlock>
-            </Button>
-            <TextBlock Grid.Row="0" Grid.Column="1"
-                       Text="{Binding SourceFolder}"
-                       TextTrimming="CharacterEllipsis"
-                       VerticalAlignment="Center"
-                       ToolTip.Tip="{Binding SourceFolder}" />
+        <Grid Grid.Column="0" Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition MinHeight="480" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition MinHeight="200" />
+            </Grid.RowDefinitions>
 
-            <Button Grid.Row="1" Grid.Column="0" Width="90" Height="90" Margin="5"
-                    Command="{Binding ShowFolderOrFilesCommand}">
-                <TextBlock Text="Открыть в проводнике" TextWrapping="Wrap"> </TextBlock>
-            </Button>
+            <!-- Кнопки управления -->
+            <Border Background="LightSlateGray" CornerRadius="12" Margin="8">
+                <Grid Grid.Column="0" RowDefinitions="120,120,120,50,30" ColumnDefinitions="130,*">
 
-            <Button Grid.Row="2" Grid.Column="0" Width="90" Height="90" Margin="5"
-                    Command="{Binding ArchivingCommand}">
-                <!-- IsEnabled= "{Binding IsArchivingButtonEnabled}" -->
-                <TextBlock Text="Архивирование" TextWrapping="Wrap"> </TextBlock>
-            </Button>
+                    <Button Grid.Row="0" Grid.Column="0" Width="100" Height="100" Margin="25, 20, 5, 5"
+                            Command="{Binding OpenSourceFolderCommand}"
+                            IsEnabled="true" CornerRadius="12" VerticalContentAlignment="Center">
+                        <TextBlock Text="Выбрать папку" TextWrapping="Wrap" FontWeight="Bold"> </TextBlock>
+                    </Button>
 
-            <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
-                      Content="Архивировать в Zip"
-                      IsChecked="{Binding IsYesArchiveDirection}"
-                      Margin="10,5"
-                      FontFamily="JetBrains Mono"
-                      FontSize="12"
-                      VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="0" Grid.Column="1"
+                               Text="{Binding SourceFolder}"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"
+                               ToolTip.Tip="{Binding SourceFolder}" />
 
-            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
-                <TextBlock Text="Архивировать в папку заказчика"
-                           TextTrimming="CharacterEllipsis"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
-                <Border BorderThickness="2"
-                        BorderBrush="Blue"
-                        CornerRadius="8">
-                    <StackPanel Orientation="Horizontal">
-                        <CheckBox IsChecked="{Binding IsFullPath}"
-                                  Margin="10,5"
+                    <Button Grid.Row="1" Grid.Column="0" Width="100" Height="100" Margin="25, 5, 5, 5"
+                            Command="{Binding ShowFolderOrFilesCommand}"
+                            CornerRadius="12" VerticalContentAlignment="Center" FontWeight="Bold">
+                        <TextBlock Text="Показать в папке" TextWrapping="Wrap"> </TextBlock>
+                    </Button>
+
+                    <Button Grid.Row="2" Grid.Column="0" Width="100" Height="100" Margin="25, 5, 5, 5"
+                            Command="{Binding ArchivingCommand}"
+                            CornerRadius="12" VerticalContentAlignment="Center" FontWeight="Bold">
+                        <TextBlock Text="Архивирование" TextWrapping="Wrap"> </TextBlock>
+                    </Button>
+
+                    <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="10" Height="30">
+                        <Border BorderThickness="2"
+                                BorderBrush="LightBlue"
+                                CornerRadius="8" Margin="5">
+                            <StackPanel Orientation="Horizontal" Margin="0">
+
+                                <CheckBox IsChecked="{Binding IsFullPath}"
+                                          Margin="10,5"
+                                          FontFamily="JetBrains Mono"
+                                          FontSize="12"
+                                          VerticalAlignment="Center" />
+
+                                <TextBlock Text="Архивировать в папку заказчика"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="150" />
+                            </StackPanel>
+                        </Border>
+
+                        <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                  Content="Архивировать в Zip"
+                                  IsChecked="{Binding IsYesArchiveDirection}"
+                                  Margin="20,5"
                                   FontFamily="JetBrains Mono"
                                   FontSize="12"
-                                  VerticalAlignment="Center" />
-                        <TextBox Margin="0,30"
-                                 Text="{Binding ClientDir}"
-                                 TextWrapping="Wrap"
-                                 IsEnabled="{Binding IsFullPath}"/>
+                                  HorizontalAlignment="Right" />
                     </StackPanel>
-                </Border>
-            </StackPanel>
+                </Grid>
+            </Border>
+
+
+            <!-- Сплиттер -->
+            <GridSplitter Grid.Row="1" Height="6" Grid.ColumnSpan="2"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          ResizeBehavior="PreviousAndNext" Margin="0"
+                          ShowsPreview="False" />
+
+            <!-- info -->
+            <Border Grid.Row="2" Background="LightSlateGray" CornerRadius="12" Margin="8">
+                <Grid Margin="20" RowDefinitions="Auto, *">
+                    <SelectableTextBlock Grid.Row="0"
+                                         Text="{Binding ItemInfoText}"
+                                         FontSize="10"
+                                         FontFamily="Consolas"
+                                         TextAlignment="Left"
+                                         TextWrapping="Wrap"
+                                         Foreground="Black"
+                                         FontWeight="DemiBold" />
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding ProgressLog}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                               FontFamily="Consolas"
+                                               FontSize="9"
+                                               Foreground="#CCCCCC"
+                                               TextWrapping="Wrap"
+                                               Margin="0,1" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
 
-        <!-- Сплиттер -->
         <GridSplitter Grid.Column="1" Width="6"
                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                       ResizeBehavior="PreviousAndNext"
                       ShowsPreview="False" />
 
-        <!-- info -->
-        <Grid Grid.Column="2" Margin="10">
-            <Border Grid.Column="0"
-                    CornerRadius="12"
-                    Background="BlanchedAlmond"
-                    Padding="10"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Top">
+        <Border Grid.Column="2" Grid.Row="0" Background="LightSlateGray"
+                CornerRadius="12" Margin="8">
+            <Grid RowDefinitions="40, *, 50">
 
-                <SelectableTextBlock Text="{Binding ItemInfoText}"
-                           FontSize="10"
-                           FontFamily="Consolas"
-                           TextAlignment="Left"
-                           TextWrapping="Wrap"
-                           Foreground="Black"
-                           FontWeight="DemiBold"/>
-            </Border>
-        </Grid>
+                <!-- Панель кнопок управления деревом + отзывы-->
+                <StackPanel Grid.Row="0" Margin="10,0,10,10"
+                            Orientation="Horizontal" Spacing="8">
 
-        <!-- Сплиттер -->
-        <GridSplitter Grid.Column="3" Width="6"
-                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                      ResizeBehavior="PreviousAndNext"
-                      ShowsPreview="False" />
-
-        <Grid Grid.Column="4" RowDefinitions="40, *">
-
-            <!-- Панель кнопок управления деревом -->
-            <StackPanel Grid.Row="0" Margin="10,0,10,10" 
-                        Orientation="Horizontal" Spacing="8">
-                
-                <Button Command="{Binding CollapseAllCommand}"
-                        Width="80" FontSize="10" CornerRadius="0,0,8,8"
-                        ToolTip.Tip="Свернуть всё" VerticalAlignment="Top">
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="📁" />
-                        <TextBlock Text="Свернуть" />
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding ExpandVariantsOnlyCommand}"
-                        Width="80" FontSize="10" CornerRadius="0,0,8,8"
-                        ToolTip.Tip="Раскрыть виды" VerticalAlignment="Top">
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="🎯" />
-                        <TextBlock Text="Виды" />
-                    </StackPanel>
-                </Button>
-
-                <Button Command="{Binding ExpandAllCommand}" 
-                        Width="80" FontSize="10" CornerRadius="0,0,8,8"
-                        Margin="0" ToolTip.Tip="Раскрыть всё" VerticalAlignment="Top">
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <TextBlock Text="📂" />
-                        <TextBlock Text="Файлы" />
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
-
-            <!-- TreeView с файлами -->
-            <TreeView Grid.Row="1" Margin="10, 24"
-                      ItemsSource="{Binding TreeNodes}"
-                      SelectedItem="{Binding SelectedNode}">
-
-                <TreeView.DataTemplates>
-                    <TreeDataTemplate DataType="{x:Type treeNodes:TreeNode}"
-                                      ItemsSource="{Binding Children}">
-                        <StackPanel x:DataType="treeNodes:TreeNode" Orientation="Horizontal" Spacing="8">
-                            <!-- Добавьте Mode=OneWay если нужно -->
-                            <TextBlock Text="{Binding IconSymbol}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                    <Button Command="{Binding CollapseAllCommand}"
+                            Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                            ToolTip.Tip="Свернуть всё" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="📁" />
+                            <TextBlock Text="Свернуть" />
                         </StackPanel>
-                    </TreeDataTemplate>
-                </TreeView.DataTemplates>
-            </TreeView>
-        </Grid>
+                    </Button>
+
+                    <Button Command="{Binding ExpandVariantsOnlyCommand}"
+                            Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                            ToolTip.Tip="Раскрыть виды" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="🎯" />
+                            <TextBlock Text="Виды" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ExpandAllCommand}"
+                            Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                            Margin="0" ToolTip.Tip="Раскрыть всё" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="📂" />
+                            <TextBlock Text="Файлы" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding ReloadTreeCommand}"
+                            Width="80" FontSize="10" CornerRadius="0,0,8,8"
+                            Margin="0" ToolTip.Tip="Обновить (отмена всех изменений)" VerticalAlignment="Top">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="Обновить" />
+                        </StackPanel>
+                    </Button>
+                    
+                </StackPanel>
+
+
+                <!-- TreeView с файлами -->
+                <TreeView Grid.Row="1" Margin="10, 24"
+                          ItemsSource="{Binding TreeNodes}"
+                          SelectedItem="{Binding SelectedNode}">
+
+                    <TreeView.DataTemplates>
+
+                        <!-- OrderNode -->
+                        <TreeDataTemplate DataType="{x:Type treeNodes:OrderNode}"
+                                          ItemsSource="{Binding Children}">
+                            <!-- Orientation="Horizontal" Spacing="8 -->
+                            <Grid ColumnDefinitions="Auto, Auto, Auto, Auto, Auto, *, Auto">
+
+                                <TextBlock Grid.Column="0" Text="{Binding IconSymbol}" VerticalAlignment="Center" />
+
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding OrderNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         VerticalAlignment="Center" MaxWidth="200" BorderThickness="0"
+                                         KeyDown="EditableTextBox_KeyDown" />
+
+                                <TextBox Grid.Column="2"
+                                         Text="{Binding ClientName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="{Binding ClientNameBackground}"
+                                         VerticalAlignment="Center" MaxWidth="200"
+                                         KeyDown="EditableTextBox_KeyDown"
+                                         BorderThickness="0">
+                                    <TextBox.Styles>
+                                        <Style Selector="TextBox">
+                                            <Setter Property="Transitions">
+                                                <Transitions>
+                                                    <BrushTransition Property="Background" Duration="0:0:1.12" />
+                                                </Transitions>
+                                            </Setter>
+                                        </Style>
+                                    </TextBox.Styles>
+                                </TextBox>
+
+                                <TextBox Grid.Column="3" VerticalAlignment="Center" MaxWidth="200" BorderThickness="0"
+                                         Text="{Binding ClientNameTranslit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         KeyDown="EditableTextBox_KeyDown" />
+
+                                <Button Grid.Column="4" Padding="4,0" Margin="2,0"
+                                        Command="{Binding ConfirmChanges}"
+                                        IsEnabled="{Binding IsModified}"
+                                        IsVisible="{Binding IsModified}"
+                                        ToolTip.Tip="Подтвердить (Enter)">
+                                    <Image Source="/Assets/Confirm.png"
+                                           Margin="0" Height="18" Stretch="Uniform" />
+                                </Button>
+
+                                <Button Grid.Column="5" Padding="4,0" Margin="2,0"
+                                        Command="{Binding CancelChanges}"
+                                        IsEnabled="{Binding IsModified}"
+                                        IsVisible="{Binding IsModified}"
+                                        ToolTip.Tip="Отменить (Esc)">
+                                    <Image Source="/Assets/RedCross.png"
+                                           Margin="0" Height="18" Stretch="Uniform" />
+                                </Button>
+
+                                <Border Grid.Column="6" Width="200">
+
+                                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Height="12"
+                                               HorizontalAlignment="Right" />
+                                </Border>
+
+                            </Grid>
+                        </TreeDataTemplate>
+
+                        <!-- VariantNode-->
+                        <TreeDataTemplate DataType="{x:Type treeNodes:VariantNode}"
+                                          ItemsSource="{Binding Children}">
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+
+                                <TextBlock Text="{Binding IconSymbol}" VerticalAlignment="Center" />
+
+                                <TextBox
+                                    Text="{Binding VariantNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    VerticalAlignment="Center" Height="18" MaxWidth="200" BorderThickness="0"
+                                    KeyDown="EditableTextBox_KeyDown" />
+
+                                <Button Command="{Binding ConfirmChanges}"
+                                        IsEnabled="{Binding IsModified}"
+                                        IsVisible="{Binding IsModified}"
+                                        Padding="4,0" Margin="2,0"
+                                        ToolTip.Tip="Подтвердить (Enter)">
+                                    <Image Source="/Assets/Confirm.png"
+                                           Margin="0" Height="18" Stretch="Uniform" />
+                                </Button>
+
+                                <Button Command="{Binding CancelChanges}"
+                                        IsEnabled="{Binding IsModified}"
+                                        IsVisible="{Binding IsModified}"
+                                        Padding="4,0" Margin="2,0"
+                                        ToolTip.Tip="Отменить (Esc)">
+                                    <Image Source="/Assets/RedCross.png"
+                                           Margin="0" Height="18" Stretch="Uniform" />
+                                </Button>
+
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Height="18" />
+                            </StackPanel>
+                        </TreeDataTemplate>
+
+                        <!--FileNode -->
+                        <TreeDataTemplate DataType="{x:Type treeNodes:FileNode}"
+                                          ItemsSource="{Binding Children}">
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+
+                                <TextBlock Text="{Binding IconSymbol}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </TreeDataTemplate>
+
+                    </TreeView.DataTemplates>
+                </TreeView>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3">
+
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%, 0%">
+                    <GradientStop Color="#ff000020" Offset="0.2" />
+                    <GradientStop Color="LightSlateGray" Offset="0.8" />
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <Grid ColumnDefinitions="Auto, Auto, Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="20,0,0,0">
+                    <ProgressBar Width="200" Foreground="Chartreuse"
+
+                                 IsIndeterminate="False"
+                                 Value="{Binding ProgressPercent}" />
+                    <TextBlock Text="{Binding IsProcessingValue}"
+                               VerticalAlignment="Center" Foreground="Aquamarine"
+                               FontSize="10" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

@@ -2,23 +2,34 @@ using System.IO;
 
 namespace FormaStream.Core.Models
 {
-    public class FileItem
+    public class FileItem(
+        string filename,
+        string filePath,
+        string orderNumber,
+        string variantNumber,
+        string clientNameTranslit,
+        string forMachine,
+        string polymerType,
+        string separation)
     {
-        public string Filename { get; set; } = string.Empty;
-        public string OrderNumber { get; set; } = string.Empty;
-        public string VariantNumber { get; set; } = string.Empty;
+        public string Filename { get; set; } = filename;
+        public string FilePath { get; set; } = filePath;
+        public string OrderNumber { get; set; } = orderNumber;
+        public string VariantNumber { get; set; } = variantNumber;
+        public string ClientNameTranslit { get; set; } = clientNameTranslit;
         public string ClientName { get; set; } = string.Empty;
-        public string ForMachine {get ;set;} = string.Empty;
-        public string PolymerType { get; set; } = string.Empty;
-        public string Separation { get; set; } = string.Empty;
-        public string DisplayName => System.IO.Path.GetFileNameWithoutExtension(Filename);
-        public FileInfo FileInfo => new FileInfo(Filename);
-        
-        public override string ToString() => $"{DisplayName} \n" +
-                                             $"Путь:      {FileInfo.DirectoryName} \n" +
+        public string ForMachine {get ;set;} = forMachine;
+        public string PolymerType { get; set; } = polymerType;
+        public string Separation { get; set; } = separation;
+
+        public FileInfo FileInfo => new FileInfo(Path.Combine(FilePath, Filename));
+
+        public override string ToString() => $"{Filename} \n" +
+                                             $"Путь:      {FilePath} \n" +
                                              $"Заказ:     {OrderNumber} \n" +
                                              $"Макет:     {VariantNumber} \n" +
-                                             $"Клиент:    {ClientName} \n" +
+                                             $"Клиент:    {ClientNameTranslit} \n" +
+                                             $"✓Клиент:   {ClientName} \n" +
                                              $"Машина:    {ForMachine} \n" +
                                              $"Полимер:   {PolymerType} \n" +
                                              $"Сепарация: {Separation} \n" +

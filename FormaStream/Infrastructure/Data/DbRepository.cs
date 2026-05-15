@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -11,114 +12,23 @@ using FormaStream.Core.Models;
 
 namespace FormaStream.Infrastructure.Data;
 
-public class DbRepository : IDbRepository
+public class DbRepository(string connectionString) : IDbRepository
 {
-    private readonly string _connectionString;
-    private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = false };
+    private static readonly JsonSerializerOptions JsonOpts = new()
+        { WriteIndented = false, PropertyNameCaseInsensitive = true };
 
-    public DbRepository(string connectionString) => _connectionString = connectionString;
-
- public async Task SaveVariantsAsync(IEnumerable<Variant> variants)
+    // 🔹 Публичный метод — сохраняет клиентов из выбранных вариантов
+    public async Task AddClientAsync(List<Variant> variants)
     {
-        if (!variants.Any()) return;
+        if (variants == null || variants.Count == 0) return;
 
-        await using var connection = new SqliteConnection(_connectionString);
+        await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
-        await using var transaction = await connection.BeginTransactionAsync();
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
 
         try
         {
-            // 🔹 0. Сохраняем уникальных клиентов из выбранных вариантов
-            var uniqueClients = variants
-                .Where(v => !string.IsNullOrWhiteSpace(v.ClientName))
-                .GroupBy(v => v.ClientName)
-                .Select(g => new 
-                { 
-                    NameRu = g.Key, 
-                    Translits = new[] { g.Key } // можно расширить логику транслитерации
-                });
-
-            foreach (var client in uniqueClients)
-            {
-                await connection.ExecuteAsync(@"
-                    INSERT INTO Clients (NameRu, NameTransliterations) 
-                    VALUES (@NameRu, @Transliterations)
-                    ON CONFLICT(NameRu) DO UPDATE SET 
-                        NameTransliterations = excluded.NameTransliterations;",
-                    new 
-                    { 
-                        NameRu = client.NameRu, 
-                        Transliterations = JsonSerializer.Serialize(client.Translits, JsonOpts) 
-                    },
-                    transaction);
-            }
-
-            // 🔹 1. Группируем варианты по заказам (как раньше)
-            var variantsByOrder = variants.GroupBy(v => v.OrderNumber);
-
-            foreach (var orderGroup in variantsByOrder)
-            {
-                var orderNumber = orderGroup.Key;
-                var clientNameRu = orderGroup.First().ClientName; // теперь это ссылка на Clients
-
-                // 1️⃣ Сохраняем/обновляем Заказ (с ссылкой на клиента)
-                var orderId = await connection.ExecuteScalarAsync<long>(@"
-                    INSERT INTO Orders (OrderNumber, ClientNameRu) 
-                    VALUES (@OrderNumber, @ClientNameRu)
-                    ON CONFLICT(OrderNumber) DO UPDATE SET ClientNameRu = excluded.ClientNameRu
-                    RETURNING Id;",
-                    new { OrderNumber = orderNumber, ClientNameRu = clientNameRu },
-                    transaction);
-
-                foreach (var variant in orderGroup)
-                {
-                    // 2️⃣ Сохраняем Вариант (с ссылкой на клиента)
-                    var variantId = await connection.ExecuteScalarAsync<long>(@"
-                        INSERT INTO Variants (OrderId, VariantNumber, ClientNameRu, PolymerType, ForMachine, VariantPath, Separations) 
-                        VALUES (@OrderId, @VariantNumber, @ClientNameRu, @PolymerType, @ForMachine, @VariantPath, @Separations)
-                        ON CONFLICT(OrderId, VariantNumber) DO UPDATE SET 
-                            ClientNameRu = excluded.ClientNameRu,
-                            PolymerType = excluded.PolymerType,
-                            ForMachine = excluded.ForMachine,
-                            VariantPath = excluded.VariantPath,
-                            Separations = excluded.Separations
-                        RETURNING Id;",
-                        new
-                        {
-                            OrderId = orderId,
-                            variant.VariantNumber,
-                            ClientNameRu = variant.ClientName, // ← ссылка на Clients.NameRu
-                            variant.PolymerType,
-                            variant.ForMachine,
-                            variant.VariantPath,
-                            Separations = JsonSerializer.Serialize(variant.Separation, JsonOpts)
-                        },
-                        transaction);
-
-                    // 3️⃣ Сохраняем Файлы (с ссылкой на клиента)
-                    if (variant.Files.Any())
-                    {
-                        var fileParams = variant.Files.Select(f => new
-                        {
-                            VariantId = variantId,
-                            f.Filename,
-                            f.OrderNumber,
-                            f.VariantNumber,
-                            ClientNameRu = f.ClientName, // ← ссылка на Clients
-                            f.ForMachine,
-                            f.PolymerType,
-                            f.Separation
-                        });
-
-                        await connection.ExecuteAsync(@"
-                            INSERT INTO FileItems (VariantId, Filename, OrderNumber, VariantNumber, ClientNameRu, ForMachine, PolymerType, Separation)
-                            VALUES (@VariantId, @Filename, @OrderNumber, @VariantNumber, @ClientNameRu, @ForMachine, @PolymerType, @Separation)
-                            ON CONFLICT(VariantId, Filename) DO NOTHING;",
-                            fileParams,
-                            transaction);
-                    }
-                }
-            }
+            await AddClientInternalAsync(variants, connection, transaction);
             await transaction.CommitAsync();
         }
         catch
@@ -128,73 +38,274 @@ public class DbRepository : IDbRepository
         }
     }
 
-    // Заглушка для будущей загрузки
-    public Task<List<Variant>> GetVariantsByOrderAsync(string orderNumber) => 
-        throw new NotImplementedException();
-    
-    
-    // 🔹 Сохранение клиента
-    public async Task SaveClientAsync(string nameRu, IEnumerable<string> transliterations)
+    private async Task AddClientInternalAsync(
+        List<Variant> variants,
+        SqliteConnection connection,
+        SqliteTransaction transaction)
     {
-        if (string.IsNullOrWhiteSpace(nameRu)) return;
+        if (variants.Count == 0) return;
 
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
-
-        await connection.ExecuteAsync(@"
-            INSERT INTO Clients (NameRu, NameTransliterations) 
-            VALUES (@NameRu, @Transliterations)
-            ON CONFLICT(NameRu) DO UPDATE SET 
-                NameTransliterations = excluded.NameTransliterations;",
-            new 
-            { 
-                NameRu = nameRu, 
-                Transliterations = JsonSerializer.Serialize(transliterations, JsonOpts) 
+        //  Получаем уникальных клиентов из выбранных вариантов
+        var uniqueClients = variants
+            .Where(v => !string.IsNullOrWhiteSpace(v.ClientName))
+            .GroupBy(v => v.ClientName)
+            .Select(g => new
+            {
+                ClientName = g.Key,
+                ClientNameTranslations = g
+                    .Select(c => c.ClientNameTranslit)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Distinct()
+                    .ToList()
             });
+
+        foreach (var client in uniqueClients)
+        {
+            // Получаем существующие транслитерации из БД
+            var existingJson = await connection.ExecuteScalarAsync<string>(
+                "SELECT Translits FROM Clients WHERE Name = @Name",
+                new { Name = client.ClientName },
+                transaction);
+
+            var updatedJson = MergeTranslits(existingJson, client.ClientNameTranslations, JsonOpts);
+
+            // вставляем или обновляем запись (ON CONFLICT)
+            await connection.ExecuteAsync(@"
+                INSERT INTO Clients (Name, Translits) 
+                VALUES (@Name, @Translits)
+                ON CONFLICT(Name) DO UPDATE SET Translits = excluded.Translits",
+                new { Name = client.ClientName, Translits = updatedJson },
+                transaction);
+        }
     }
 
-    // 🔹 Поиск основного названия по любому варианту (русское или транслит)
-    public async Task<string?> GetClientNameRuAsync(string anyNameVariant)
-    {
-        if (string.IsNullOrWhiteSpace(anyNameVariant)) return null;
 
-        await using var connection = new SqliteConnection(_connectionString);
+    public async Task SaveVariantsAsync(IEnumerable<Variant> enumerableVariants)
+    {
+        var variants = enumerableVariants.ToList();
+        if (!variants.Any()) return;
+
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+        await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
+
+        try
+        {
+            // Сохраняем клиентов
+            await AddClientInternalAsync(variants, connection, transaction);
+
+            foreach (var variant in variants)
+            {
+                // Формируем новые записи истории
+                var newHistoryEntries = variant.Files
+                    .Select(f => new
+                    {
+                        date = DateTime.UtcNow.ToString("o"),
+                        file = f.Filename,
+                        source = "archiving"
+                    })
+                    .Cast<object>() // приводим к object для совместимости с интерфейсом
+                    .ToList();
+
+                var existingHistoryJson = await connection.ExecuteScalarAsync<string>(
+                    "SELECT FileHistory FROM Variants WHERE VariantNumber = @VariantNumber",
+                    new { variant.VariantNumber },
+                    transaction);
+
+                var fileHistoryJson = MergeFileHistory(
+                    existingHistoryJson,
+                    newHistoryEntries,
+                    JsonOpts);
+
+                var ClientId = await GetClientIdByName(connection, variant.ClientName);
+
+                var variantId = await connection.ExecuteScalarAsync<long>(@"
+                INSERT INTO Variants (VariantNumber, ClientId, OrderNumber, PolymerType, ForMachine, VariantPath, FileHistory) 
+                VALUES (@VariantNumber, @ClientId, @OrderNumber, @PolymerType, @ForMachine, @VariantPath, @FileHistory)
+                ON CONFLICT(VariantNumber) DO UPDATE SET 
+                    ClientId = excluded.ClientId,
+                    OrderNumber = excluded.OrderNumber,
+                    PolymerType = excluded.PolymerType,
+                    ForMachine = excluded.ForMachine,
+                    VariantPath = excluded.VariantPath,
+                    FileHistory = excluded.FileHistory
+                RETURNING Id;",
+                    new
+                    {
+                        variant.VariantNumber,
+                        ClientId,
+                        variant.OrderNumber,
+                        variant.PolymerType,
+                        variant.ForMachine,
+                        variant.VariantPath,
+                        FileHistory = fileHistoryJson
+                    },
+                    transaction);
+
+                if (variant.Files.Any())
+                {
+                    var fileParams = variant.Files.Select(f => new
+                    {
+                        VariantId = variantId,
+                        Filename = f.Filename,
+                        Separation = f.Separation
+                    });
+
+                    await connection.ExecuteAsync(@"
+                    INSERT INTO FileItems (VariantId, Filename, Separation)
+                    VALUES (@VariantId, @Filename, @Separation)
+                    ON CONFLICT(VariantId, Filename) DO NOTHING;",
+                        fileParams,
+                        transaction);
+                }
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private static async Task<int?> GetClientIdByName(SqliteConnection connection, string name)
+    {
+        try
+        {
+            var id = await connection.ExecuteScalarAsync<int?>(
+                "SELECT Id FROM Clients WHERE LOWER(Name) = LOWER(@Name) LIMIT 1",
+                new { Name = name });
+
+            return id;
+        }
+        catch (Exception ex)
+        {
+            // Логируем и пробрасываем дальше (или возвращаем null, если это допустимо)
+            Debug.WriteLine($"[GetClientIdByName] Ошибка: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<string> GetClientByTranslitAsync(string translit)
+    {
+        if (string.IsNullOrWhiteSpace(translit))
+            return string.Empty;
+
+        await using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
 
-        // 1. Прямое совпадение с русским названием
-        var result = await connection.ExecuteScalarAsync<string>(
-            "SELECT NameRu FROM Clients WHERE NameRu = @Name LIMIT 1",
-            new { Name = anyNameVariant });
+        // Загружаем всех клиентов
+        var clients = await connection.QueryAsync<(string Name, string Translits)>(
+            "SELECT Name, Translits FROM Clients WHERE Translits IS NOT NULL AND Translits != ''");
 
-        if (result != null) return result;
+        foreach (var (name, json) in clients)
+        {
+            if (string.IsNullOrWhiteSpace(json)) continue;
 
-        // 2. Поиск в JSON-массиве транслитераций
-        var allClients = await connection.QueryAsync<(string NameRu, string Json)>(
-            "SELECT NameRu, NameTransliterations FROM Clients");
+            try
+            {
+                // Парсим JSON-массив транслитераций
+                var translits = JsonSerializer.Deserialize<List<string>>(json, JsonOpts);
+                if (translits == null || translits.Count == 0) continue;
 
-        foreach (var (nameRu, json) in allClients)
+                // Проверяем: содержится ли ЛЮБОЕ значение из массива во входной строке
+                if (translits.Any(t =>
+                        !string.IsNullOrWhiteSpace(t) &&
+                        translit.Contains(t, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return name;
+                }
+            }
+            catch (JsonException)
+            {
+                // Игнорируем битый JSON, переходим к следующему клиенту
+                continue;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    public async Task<Dictionary<string, string>> LoadClientCacheAsync()
+    {
+        var cache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // Загружаем всех клиентов из БД
+        await using var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+
+        var clients = await connection.QueryAsync<(string Name, string Translits)>(
+            "SELECT Name, Translits FROM Clients WHERE Translits IS NOT NULL AND Translits != ''");
+
+        foreach (var (name, json) in clients)
         {
             if (string.IsNullOrWhiteSpace(json)) continue;
             try
             {
                 var translits = JsonSerializer.Deserialize<List<string>>(json, JsonOpts);
-                if (translits?.Contains(anyNameVariant, StringComparer.OrdinalIgnoreCase) == true)
-                    return nameRu;
+                
+                if (translits == null || translits.Count == 0) continue;
+                
+                foreach (var t in translits.Where(t => !string.IsNullOrWhiteSpace(t)))
+                {
+                    if (!cache.ContainsKey(t))
+                        cache[t] = name;
+                }
             }
-            catch { /* игнорируем битый JSON */ }
+            catch
+            {
+                /* игнорируем битый JSON */
+            }
+        }
+
+        return cache;
+    }
+
+    public string[]? GetClientNameFromCache(Dictionary<string, string> cache, string input)
+    {
+        if (string.IsNullOrWhiteSpace(input) || cache.Count == 0)
+            return null;
+
+        foreach (var (key, name) in cache)
+        {
+            if (input.Contains(key, StringComparison.OrdinalIgnoreCase))
+                return [name, key];
         }
 
         return null;
     }
 
-    // 🔹 Получение всех клиентов для выпадающего списка
-    public async Task<List<(string NameRu, string TransliterationsJson)>> GetAllClientsAsync()
+    private static string MergeFileHistory(string? existingJson, IEnumerable<object> newEntries,
+        JsonSerializerOptions opts)
     {
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
+        var existing = ParseList<JsonElement>(existingJson, opts);
+        foreach (var entry in newEntries)
+        {
+            var json = JsonSerializer.Serialize(entry, opts);
+            existing.Add(JsonSerializer.Deserialize<JsonElement>(json, opts));
+        }
 
-        return (await connection.QueryAsync<(string NameRu, string TransliterationsJson)>(
-            "SELECT NameRu, NameTransliterations FROM Clients ORDER BY NameRu"))
-            .ToList();
+        return JsonSerializer.Serialize(existing, opts);
+    }
+
+    private static string MergeTranslits(string? existingJson, List<string> newTranslits, JsonSerializerOptions opts)
+    {
+        var existing = ParseList<string>(existingJson, opts);
+        existing.AddRange(newTranslits.Where(t => !string.IsNullOrWhiteSpace(t)));
+        return JsonSerializer.Serialize(existing.Distinct(StringComparer.OrdinalIgnoreCase), opts);
+    }
+
+    private static List<T> ParseList<T>(string? json, JsonSerializerOptions opts)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<T>>(json, opts) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 }

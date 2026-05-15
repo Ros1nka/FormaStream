@@ -130,6 +130,7 @@ public partial class App : Application
                 services.AddSingleton<IFileParserService, FileParserService>();
                 services.AddSingleton<IVariantService, VariantService>();
                 services.AddSingleton<IOrderService, OrderService>();
+                
                 services.AddSingleton<IExplorerHelper, ExplorerHelper>();
 
                 services.AddSingleton<IDatabaseInitializer>(new DatabaseInitializer(connStr));

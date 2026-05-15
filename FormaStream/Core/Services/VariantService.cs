@@ -6,7 +6,7 @@ using FormaStream.Core.Models;
 
 namespace FormaStream.Core.Services
 {
-    public class VariantService: IVariantService
+    public class VariantService : IVariantService
     {
         private List<Variant> GroupByVariant(List<FileItem> files)
         {
@@ -19,7 +19,7 @@ namespace FormaStream.Core.Services
                 {
                     Article = f.VariantNumber,
                     f.OrderNumber,
-                    f.ClientName,
+                    ClientName = f.ClientNameTranslit,
                     f.PolymerType
                 })
                 .ToList();
@@ -31,16 +31,16 @@ namespace FormaStream.Core.Services
                 var firstFile = group.First();
 
                 var variant = new Variant
-                {
-                    VariantNumber = firstFile.VariantNumber,
-                    OrderNumber = firstFile.OrderNumber,
-                    ClientName = firstFile.ClientName,
-                    PolymerType = firstFile.PolymerType,
-                    ForMachine =  firstFile.ForMachine,
-                    VariantPath = Path.GetDirectoryName(firstFile.Filename) ?? string.Empty,
-                    Files = group.ToList(),
-                    Separation = group.Select(f => f.Separation).ToList()
-                };
+                (
+                    variantNumber: firstFile.VariantNumber,
+                    orderNumber: firstFile.OrderNumber,
+                    clientNameTranslit: firstFile.ClientNameTranslit,
+                    polymerType: firstFile.PolymerType,
+                    forMachine: firstFile.ForMachine,
+                    variantPath: firstFile.FilePath ?? string.Empty,
+                    files: group.ToList(),
+                    separation: group.Select(f => f.Separation).ToList()
+                );
 
                 result.Add(variant);
             }
@@ -55,23 +55,24 @@ namespace FormaStream.Core.Services
             foreach (var group in groups)
             {
                 var namesInGroup = group.Files.Select(f => Path.GetFileNameWithoutExtension(f.Filename)).ToList();
-                
+
                 //вычисляем Separation для всей группы
                 var separationsMap = SeparationAnalysisHelper.ExtractSeparations(namesInGroup);
 
                 group.Separation = separationsMap.Values.ToList();
-                
+
                 //присваиваем вычисленный Separation каждому файлу в объекте
                 foreach (var file in group.Files)
                 {
                     var cleanName = Path.GetFileNameWithoutExtension(file.Filename);
-					
+
                     if (separationsMap.TryGetValue(cleanName, out var value))
                     {
                         file.Separation = value;
                     }
                 }
             }
+
             return groups;
         }
     }

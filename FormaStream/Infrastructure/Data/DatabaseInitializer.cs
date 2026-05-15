@@ -12,7 +12,7 @@ public class DatabaseInitializer : IDatabaseInitializer
 
     public DatabaseInitializer(string connectionString) => _connectionString = connectionString;
 
-    public void Initialize() // ← Синхронный метод
+    public void Initialize()
     {
         Console.WriteLine($"[DbUp] Старт: {_connectionString}");
         

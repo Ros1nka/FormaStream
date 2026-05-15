@@ -5,14 +5,14 @@ namespace FormaStream.Shell.ViewModels.TreeNodes
 {
     public class FileNode : TreeNode
     {
-        public FileItem File { get; }
+        public override FileItem SourceData { get; }
 
         public FileNode(FileItem file)
         {
-            File = file;
+            SourceData = file;
         }
 
-        public override string DisplayName => File.DisplayName;
+        public override string DisplayName => SourceData.Filename;
         public override string IconSymbol => " ";
     }
 }

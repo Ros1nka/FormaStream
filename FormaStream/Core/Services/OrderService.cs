@@ -5,7 +5,7 @@ using FormaStream.Core.Models;
 
 namespace FormaStream.Core.Services
 {
-    public class OrderService: IOrderService
+    public class OrderService : IOrderService
     {
         public List<Order> GroupByOrder(IEnumerable<Variant> variants)
         {
@@ -24,11 +24,11 @@ namespace FormaStream.Core.Services
             foreach (var group in grouped)
             {
                 var order = new Order
-                {
-                    OrderNumber = group.Key.OrderNumber,
-                    ClientName = variants.FirstOrDefault(v => v.OrderNumber == group.Key.OrderNumber)?.ClientName,
-                    Variants = group.ToList()
-                };
+                (
+                    orderNumber: group.Key.OrderNumber,
+                    clientNameTranslit: variants.FirstOrDefault(v => v.OrderNumber == group.Key.OrderNumber)?.ClientNameTranslit,
+                    variants: group.ToList()
+                );
 
                 result.Add(order);
             }
