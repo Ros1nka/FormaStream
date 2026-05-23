@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:FormaStream.Shell.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="FormaStream.Shell.View.Silk">
+             x:Class="FormaStream.Shell.Views.Silk">
 
     <Design.DataContext>
         <viewModels:SilkViewModel />

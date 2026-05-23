@@ -1,8 +1,6 @@
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 
-namespace FormaStream.Shell.View;
+namespace FormaStream.Shell.Views;
 
 public partial class Clishe : UserControl
 {

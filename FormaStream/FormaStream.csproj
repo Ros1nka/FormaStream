@@ -32,6 +32,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" />
         <PackageReference Include="Dapper" />
         <PackageReference Include="DbUp.Reboot.Sqlite" />
+        <PackageReference Include="Google.Apis.Drive.v3" />
         <PackageReference Include="LiveChartsCore" />
         <PackageReference Include="LiveChartsCore.SkiaSharpView.Avalonia" />
         <PackageReference Include="Microsoft.Data.Sqlite" />
@@ -44,6 +45,7 @@
         <PackageReference Include="Serilog" />
         <PackageReference Include="Serilog.Extensions.Hosting" />
         <PackageReference Include="Serilog.Sinks.File" />
+        <PackageReference Include="Xaml.Behaviors.Avalonia" />
         <PackageReference Include="Xaml.Behaviors.Interactions" />
     </ItemGroup>
 

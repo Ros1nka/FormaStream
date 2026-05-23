@@ -3,24 +3,398 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:FormaStream.Shell.ViewModels"
+             xmlns:treeNodes="clr-namespace:FormaStream.Shell.ViewModels.TreeNodes"
+             xmlns:views="clr-namespace:FormaStream.Shell.Views"
+             xmlns:converters="clr-namespace:FormaStream.Infrastructure.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="FormaStream.Shell.View.Clishe"
-             x:DataType="viewModels:ClisheViewModel">
-    
+             x:Class="FormaStream.Shell.Views.Clishe"
+             x:DataType="viewModels:ClisheViewModel"
+             Focusable="True">
+
     <Design.DataContext>
         <viewModels:ClisheViewModel />
     </Design.DataContext>
-    
-    <Grid RowDefinitions="*, 10*" ColumnDefinitions="*, *">
-        
-        <Rectangle Grid.Row="0" Grid.Column="0" Fill="LightSlateGray"></Rectangle>
-        <Rectangle Grid.Row="1" Grid.Column="0" Fill="LightBlue"></Rectangle>
-        <Rectangle Grid.Row="0" Grid.Column="1" Fill="LightCoral"></Rectangle>
-        <Rectangle Grid.Row="1" Grid.Column="1" Fill="LightGreen"></Rectangle>
-        
-        <TreeView Grid.Row="1" Grid.Column="1">
-            
-        </TreeView>
-        
+
+    <UserControl.Styles>
+        <!-- Базовый стиль -->
+        <Style Selector="ToggleButton.mode-switch">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#CCCCCC" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+
+        <!-- Активное состояние -->
+        <Style Selector="ToggleButton.mode-switch:checked">
+            <Setter Property="Background" Value="#22C55E" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#16A34A" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="*, 15">
+        <Grid Grid.Row="0" Background="#ff251500">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="600" MaxWidth="800" MinWidth="400" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Grid.Row="0" Background="BurlyWood" CornerRadius="12" Margin="8, 8, 1, 8">
+                <Grid Grid.Column="0" Grid.Row="0" Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="6*" MinHeight="200" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="3*" MinHeight="100" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="3*" MinHeight="100" />
+                    </Grid.RowDefinitions>
+
+                    <views:FolderBrowserView Grid.Row="0" DataContext="{Binding PanelViewer1}" />
+
+                    <GridSplitter Grid.Row="1" Height="5"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                  ResizeBehavior="PreviousAndNext" Margin="0"
+                                  ShowsPreview="False" />
+
+                    <views:FolderBrowserView Grid.Row="2" DataContext="{Binding PanelViewer2}" />
+
+                    <GridSplitter Grid.Row="3" Height="5"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                  ResizeBehavior="PreviousAndNext" Margin="0"
+                                  ShowsPreview="False" />
+
+                    <views:FolderBrowserView Grid.Row="4" DataContext="{Binding PanelViewer3}" />
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5"
+                          HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          ResizeBehavior="PreviousAndNext" Margin="0" Background="Transparent"
+                          ShowsPreview="False" />
+
+
+            <Grid Grid.Column="2" ColumnDefinitions="100, *">
+                <!-- Кнопки -->
+                <Border Grid.Column="0" Background="NavajoWhite" CornerRadius="12" Margin="1, 8, 4, 8">
+
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="220" />
+                            <RowDefinition Height="185" />
+                            <RowDefinition Height="70" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="80" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Полимер -->
+                        <Border Grid.Row="0" Background="BurlyWood" Margin="2,10"
+                                CornerRadius="4">
+
+                            <StackPanel Orientation="Vertical">
+
+                                <TextBlock Text="Полимер"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                                <ListBox ItemsSource="{Binding PolymerOptions}"
+                                         SelectedItem="{Binding SelectedPolymer}"
+                                         SelectionMode="Single"
+                                         HorizontalAlignment="Stretch" Background="Transparent">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="0" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="Transparent"
+                                                    BorderBrush="#94A3B8"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="0,0">
+                                                <TextBlock Text="{Binding}" FontSize="12" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Размер полимера -->
+                        <Border Grid.Row="1" Background="BurlyWood" Margin="0,10"
+                                CornerRadius="4">
+
+                            <StackPanel Orientation="Vertical">
+
+                                <TextBlock Text="Размер"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center" />
+
+                                <ListBox ItemsSource="{Binding SizeOptions}"
+                                         SelectedItem="{Binding SelectedSize}"
+                                         SelectionMode="Single"
+                                         HorizontalAlignment="Stretch" Background="Transparent">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="0" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="Transparent"
+                                                    BorderBrush="#94A3B8"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="0,0">
+                                                <TextBlock Text="{Binding}" FontSize="12" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Произвольный -->
+                        <ListBox Grid.Row="2" x:Name="ArbitrarySize"
+                                 IsEnabled="{Binding IsArbitrarySizeEnabled}"
+                                 Width="80" WrapSelection="True"
+                                 Background="{DynamicResource SystemControlBackgroundBaseLowBrush}">
+                            <TextBox PlaceholderText="Ш × В" FontSize="12" MinLines="2"
+                                     Text="{Binding ArbitrarySizeValue, Mode=TwoWay}"
+                                     IsEnabled="{Binding IsArbitrarySizeEnabled}" />
+                        </ListBox>
+
+                        <StackPanel Grid.Row="3" Margin="8" Spacing="8">
+                            <TextBlock Text="Папка работы:" FontWeight="Bold" FontSize="11" />
+
+                            <TextBox Text="{Binding WorkSubfolderPath, Mode=OneWay}"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"
+                                     FontSize="9"
+                                     Background="#F8FAFC"
+                                     BorderBrush="#94A3B8"
+                                     BorderThickness="1"
+                                     CornerRadius="4"
+                                     Padding="4,2"
+                                     TextWrapping="Wrap"
+                                     MaxLines="2" />
+
+                            <Button Command="{Binding OpenWorkSubfolderCommand}"
+                                    IsEnabled="{Binding WorkSubfolderPath, Converter={StaticResource StringNotEmptyToBoolConverter}}"
+                                    Background="#60A5FA" Padding="8,4" CornerRadius="4">
+                                <TextBlock Text="Открыть папку📂" Foreground="White" TextWrapping="Wrap"
+                                           FontWeight="Bold" FontSize="11">
+                                </TextBlock>
+                            </Button>
+                        </StackPanel>
+
+                        <Button Grid.Row="4" Content="Старт" VerticalAlignment="Bottom" Height="70" Width="70"
+                                VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
+                                FontSize="16" FontWeight="Bold" Foreground="BlanchedAlmond" Background="Crimson"
+                                Command="{Binding StartCommand}" Margin="5" />
+                    </Grid>
+                </Border>
+
+
+                <!-- Файлы -->
+                <Border Grid.Column="1" Background="NavajoWhite" CornerRadius="12" Margin="4, 8, 8, 8">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="50" MaxHeight="50" MinHeight="50" />
+                            <RowDefinition Height="*" MaxHeight="600" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MaxHeight="600" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Шапка панели -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10,8,10,5">
+                            <TextBlock Text="{Binding GetToday}"
+                                       FontWeight="Bold" Margin="8,8,8,4" FontSize="12" />
+                            <ComboBox ItemsSource="{Binding Employees}"
+                                      SelectedItem="{Binding EmployeeShift}"
+                                      Width="150" FontSize="12" Height="30" VerticalAlignment="Bottom" />
+
+                            <Grid RowDefinitions="*, *" Margin="20,0,0,0">
+                                <TextBlock Grid.Row="0" Text="Смена"></TextBlock>
+                                <StackPanel Orientation="Horizontal" Grid.Row="1">
+                                    <ToggleButton Content="1" Width="20" Height="20"
+                                                  IsChecked="{Binding IsShift1Selected}"
+                                                  Classes="mode-switch" FontSize="12" FontWeight="Bold"
+                                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+
+                                    <ToggleButton Content="2" Width="20" Height="20"
+                                                  IsChecked="{Binding IsShift2Selected}"
+                                                  Classes="mode-switch" FontSize="12" FontWeight="Bold"
+                                                  HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+
+                        <!-- Список файлов -->
+                        <Border x:Name="FileWorkListBorder" Grid.Row="1" DataContext="{Binding PanelViewer1}">
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
+                                <ItemsControl ItemsSource="{Binding FileForWorkList}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="0" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <!-- <Grid ColumnDefinitions="*, 50, *, 30, 30, 30" Margin="4,8"> -->
+                                            <Grid ColumnDefinitions="70, 100, 100, 30 ,30 ,30">
+                                                <!-- Однострочное поле ввода -->
+                                                <TextBox Grid.Column="0"
+                                                         Text="{Binding VariantNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0,0,0,0"
+                                                         Background="Transparent"
+                                                         Padding="2,0"
+                                                         MaxWidth="70"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Center"
+                                                         FontFamily="Consolas"
+                                                         FontSize="12"
+                                                         IsTabStop="False"
+                                                         LineHeight="2" />
+                                                <TextBox Grid.Column="1"
+                                                         Text="{Binding OrderNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0,0,0,0"
+                                                         Background="Transparent"
+                                                         Padding="2,0"
+                                                         MaxWidth="100"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Center"
+                                                         FontFamily="Consolas"
+                                                         FontSize="12"
+                                                         IsTabStop="False"
+                                                         LineHeight="2" />
+                                                <TextBox Grid.Column="2"
+                                                         Text="{Binding ClientName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0,0,0,0"
+                                                         Background="Transparent"
+                                                         Padding="2,0"
+                                                         MaxWidth="100"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Center"
+                                                         FontFamily="Consolas"
+                                                         FontSize="12"
+                                                         IsTabStop="False"
+                                                         LineHeight="2" />
+                                                <TextBox Grid.Column="3"
+                                                         Text="{Binding PolymerType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0,0,0,0"
+                                                         Background="Transparent"
+                                                         Padding="2,0"
+                                                         MaxWidth="30"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Center"
+                                                         FontFamily="Consolas"
+                                                         FontSize="12"
+                                                         IsTabStop="False"
+                                                         LineHeight="2" />
+                                                <TextBox Grid.Column="4"
+                                                         Text="{Binding Separation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                         BorderThickness="0,0,0,0"
+                                                         Background="Transparent"
+                                                         Padding="2,0"
+                                                         MaxWidth="30"
+                                                         HorizontalAlignment="Left"
+                                                         VerticalContentAlignment="Center"
+                                                         VerticalAlignment="Center"
+                                                         FontFamily="Consolas"
+                                                         FontSize="12"
+                                                         IsTabStop="False"
+                                                         LineHeight="2" />
+                                                <!-- Focusable="False" -->
+                                                <Button Grid.Column="5"
+                                                        Content="✕"
+                                                        Command="{Binding #FileWorkListBorder.DataContext.RemoveFromFileEditListCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        Padding="0,2"
+                                                        Margin="4,0,0,0"
+                                                        Background="#FEE2E2"
+                                                        Foreground="#991B1B"
+                                                        CornerRadius="4" />
+                                                <!-- </Grid> -->
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
+                        <GridSplitter Grid.Row="2" Height="5"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                      ResizeBehavior="PreviousAndNext" Margin="0"
+                                      ShowsPreview="False" />
+
+                        <Grid Grid.Row="3" RowDefinitions="Auto, *">
+                            <TextBox
+                                Text="{Binding GeneratedFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                IsReadOnly="True"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                Background="#F8FAFC"
+                                BorderBrush="#94A3B8"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="6,4" />
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding ProgressLog}"
+                                              VerticalAlignment="Top">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Vertical" Spacing="1" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <SelectableTextBlock Text="{Binding}"
+                                                                 FontFamily="JetBrains Mono"
+                                                                 FontSize="11"
+                                                                 Foreground="Black"
+                                                                 TextWrapping="Wrap"
+                                                                 Margin="0,1" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+
+        </Grid>
+        <!-- статус панель -->
+        <Border Grid.Row="1">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%, 0%">
+                    <GradientStop Color="#ff000020" Offset="0.2" />
+                    <GradientStop Color="LightSlateGray" Offset="0.8" />
+                </LinearGradientBrush>
+            </Border.Background>
+
+            <Grid ColumnDefinitions="Auto, Auto, Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="20,0,0,0">
+                    <ProgressBar Width="200" Foreground="Chartreuse"
+
+                                 IsIndeterminate="False"
+                                 Value="{Binding ProgressPercent}" />
+                    <TextBlock Text="{Binding IsProcessingValue}"
+                               VerticalAlignment="Center" Foreground="Aquamarine"
+                               FontSize="10" />
+                    <TextBlock Text="{Binding StatusText}"
+                               VerticalAlignment="Center" Foreground="DarkOrange"
+                               FontSize="10" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

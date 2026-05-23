@@ -1,0 +1,44 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!-- Add Controls for Previewer Here -->
+        </Border>
+    </Design.PreviewWith>
+
+    <!--     <Style Selector="Button.mode-switch"> -->
+    <!--     <Setter Property="Background" Value="#E5E7EB"/> -->
+    <!--     <Setter Property="Foreground" Value="#374151"/> -->
+    <!--     <Setter Property="BorderThickness" Value="0"/> -->
+    <!--     <Setter Property="CornerRadius" Value="8"/> -->
+    <!--     <Setter Property="Padding" Value="16,8"/> -->
+    <!--     <Setter Property="Cursor" Value="Hand"/> -->
+    <!--     <Setter Property="Transitions"> -->
+    <!--         <Transitions> -->
+    <!--             <BrushTransition Property="Background" Duration="0:0:0.2"/> -->
+    <!--             <BrushTransition Property="Foreground" Duration="0:0:0.2"/> -->
+    <!--         </Transitions> -->
+    <!--     </Setter> -->
+    <!-- </Style> -->
+    <!-- -->
+    <!-- ~1~ Стиль для кнопки 1: Зелёный фон, если SelectedMode == Mode1 @1@ -->
+    <!-- <Style Selector="Button.mode-switch.mode1"> -->
+    <!--     <Style.Children> -->
+    <!--         <DataTrigger Binding="{Binding SelectedMode}" Value="Mode1"> -->
+    <!--             <Setter Property="Background" Value="#22C55E"/> -->
+    <!--             <Setter Property="Foreground" Value="White"/> -->
+    <!--         </DataTrigger> -->
+    <!--     </Style.Children> -->
+    <!-- </Style> -->
+    <!-- -->
+    <!-- ~1~ Стиль для кнопки 2: Зелёный фон, если SelectedMode == Mode2 @1@ -->
+    <!-- <Style Selector="Button.mode-switch.mode2"> -->
+    <!--     <Style.Children> -->
+    <!--         <DataTrigger Binding="{Binding SelectedMode}" Value="Mode2"> -->
+    <!--             <Setter Property="Background" Value="#22C55E"/> -->
+    <!--             <Setter Property="Foreground" Value="White"/> -->
+    <!--         </DataTrigger> -->
+    <!--     </Style.Children> -->
+    <!-- </Style> -->
+
+</Styles>

@@ -37,7 +37,7 @@ namespace FormaStream.Core.Services
                     clientNameTranslit: firstFile.ClientNameTranslit,
                     polymerType: firstFile.PolymerType,
                     forMachine: firstFile.ForMachine,
-                    variantPath: firstFile.FilePath ?? string.Empty,
+                    variantPath: Path.GetFullPath(firstFile.Filename),
                     files: group.ToList(),
                     separation: group.Select(f => f.Separation).ToList()
                 );

@@ -4,14 +4,12 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Dapper;
 using FormaStream.Core.Interfaces;
 using FormaStream.Core.Services;
 using FormaStream.Infrastructure.Data;
 using FormaStream.Infrastructure.Services;
-using FormaStream.Shell.View;
+using FormaStream.Shell.Views;
 using FormaStream.Shell.ViewModels;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -104,7 +102,7 @@ public partial class App : Application
                 var connStr = $"Data Source={dbPath};Mode=ReadWriteCreate;";
 
                 // Сервисы инфраструктуры
-                services.AddSingleton<IFolderPickerService>(sp =>
+                services.AddTransient<IFolderPickerService>(sp =>
                     new AvaloniaFolderPickerService(() =>
                     {
                         // Безопасное получение TopLevel
@@ -114,7 +112,7 @@ public partial class App : Application
                     }));
 
                 // Диалог подтверждения
-                services.AddSingleton<IConfirmationDialogService>(sp =>
+                services.AddTransient<IConfirmationDialogService>(sp =>
                     new AvaloniaConfirmationDialogService(() =>
                     {
                         // Безопасное получение главного окна
@@ -127,20 +125,26 @@ public partial class App : Application
                     }));
 
                 // Сервисы парсинга и обработки файлов(без состояния → Singleton)
-                services.AddSingleton<IFileParserService, FileParserService>();
-                services.AddSingleton<IVariantService, VariantService>();
-                services.AddSingleton<IOrderService, OrderService>();
+                services.AddTransient<IFileParserService, FileParserService>();
+                services.AddTransient<IVariantService, VariantService>();
+                services.AddTransient<IOrderService, OrderService>();
+                services.AddTransient<IExplorerHelper, ExplorerHelper>();
+                services.AddTransient<ITreeViewOperationsService, TreeViewOperationsService>();
+                services.AddTransient<IFeedBack, FeedBack>();
                 
-                services.AddSingleton<IExplorerHelper, ExplorerHelper>();
-
+                services.AddTransient<IFileSystemServices, FileSystemServices >();
+                
+                services.AddSingleton<IFolderWatcherService, FolderWatcherService>();
+                
+                services.AddSingleton<IUiLoggerFactory, UiLoggerFactory>();
                 services.AddSingleton<IDatabaseInitializer>(new DatabaseInitializer(connStr));
                 services.AddSingleton<IDbRepository>(new DbRepository(connStr));
 
                 // ViewModel (Transient = новый экземпляр при каждом запросе)
                 services.AddSingleton<MainWindowViewModel>();
-                services.AddTransient<ArchiveViewModel>();
-                services.AddTransient<ClisheViewModel>();
-                services.AddTransient<SilkViewModel>();
+                services.AddSingleton<ArchiveViewModel>();
+                services.AddSingleton<ClisheViewModel>();
+                services.AddSingleton<SilkViewModel>();
 
                 // Логирование
                 services.AddLogging(cfg => cfg.AddConsole().SetMinimumLevel(LogLevel.Information));

@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace FormaStream.Shell.View;
+namespace FormaStream.Shell.Views;
 
 public partial class Silk : UserControl
 {

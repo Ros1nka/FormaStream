@@ -1,9 +1,9 @@
 using System;
 using Avalonia.Controls;
 using FormaStream.Core.Navigation;
-using FormaStream.Shell.View;
+using FormaStream.Shell.Views;
 
-namespace FormaStream.Shell.View;
+namespace FormaStream.Shell.Views;
 
 public partial class MainWindow : Window
 {

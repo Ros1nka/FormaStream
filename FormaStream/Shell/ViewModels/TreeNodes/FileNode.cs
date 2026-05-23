@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using FormaStream.Core.Models;
 
 namespace FormaStream.Shell.ViewModels.TreeNodes
@@ -12,7 +13,7 @@ namespace FormaStream.Shell.ViewModels.TreeNodes
             SourceData = file;
         }
 
-        public override string DisplayName => SourceData.Filename;
+        public override string DisplayName => Path.GetFileNameWithoutExtension(SourceData.Filename);
         public override string IconSymbol => " ";
     }
 }

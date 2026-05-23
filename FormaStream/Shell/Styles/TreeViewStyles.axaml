@@ -12,7 +12,7 @@
         <Setter Property="MinHeight" Value="8"/>
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="FontFamily" Value="Consolas"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
 
@@ -22,8 +22,7 @@
                     <!-- row: родители - дети -->
                     <Grid RowDefinitions="Auto, *">
                         <Grid x:Name="PART_HeaderGrid"
-                              Grid.Row="0"
-                              ColumnDefinitions="16,*,Auto"
+                              Grid.Row="0" ColumnDefinitions="16,*,Auto"
                               Margin="0"
                               Background="Transparent">
 
@@ -61,7 +60,7 @@
     <Style Selector="TreeViewItem[ItemCount=0]">
         <Setter Property="Margin" Value="0" />
         <Setter Property="Foreground" Value="#ff202020"/>
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="12"/>
     </Style>
 
     <!-- ========== ВЫДЕЛЕНИЕ / НАВЕДЕНИЕ ========== -->
@@ -70,7 +69,7 @@
         <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="TreeViewItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter">
-        <Setter Property="Background" Value="#DBEAFE" />
+        <Setter Property="Background" Value="DarkGray" />
         <Setter Property="BorderThickness" Value="0" />
     </Style>
 

@@ -1,16 +1,15 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FormaStream.Shell.ViewModels"
-        xmlns:views="using:FormaStream.Shell.View"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:i="using:Avalonia.Xaml.Interactivity"
         xmlns:formaStream="clr-namespace:FormaStream"
-        xmlns:global="clr-namespace:"
+        xmlns:view="clr-namespace:FormaStream.Shell.Views"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         Width="1200" MinWidth="700"
         Height="800" MinHeight="600"
-        x:Class="FormaStream.Shell.View.MainWindow"
+        x:Class="FormaStream.Shell.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="FormaStream — Управление производством"
@@ -28,13 +27,13 @@
 
     <Window.DataTemplates>
         <DataTemplate DataType="vm:ArchiveViewModel">
-            <views:Archive DataContext="{Binding}" />
+            <view:Archive DataContext="{Binding}" />
         </DataTemplate>
         <DataTemplate DataType="vm:SilkViewModel">
-            <views:Silk DataContext="{Binding}" />
+            <view:Silk DataContext="{Binding}" />
         </DataTemplate>
         <DataTemplate DataType="vm:ClisheViewModel">
-            <views:Clishe DataContext="{Binding}" />
+            <view:Clishe DataContext="{Binding}" />
         </DataTemplate>
     </Window.DataTemplates>
 
@@ -108,7 +107,7 @@
                          CornerRadius="6"
                          Padding="8" />
 
-                <!-- Кнопки управления -->
+                <!-- Кнопки управления окном -->
                 <Button Grid.Row="0" Grid.Column="7" Width="16" Height="16"
                         FontSize="10" Padding="3,0,3,0" HorizontalAlignment="Center"
                         VerticalContentAlignment="Center" HorizontalContentAlignment="Center"
@@ -167,6 +166,19 @@
 
         <!-- Контент меняется в зависимости от выбранной вкладки -->
         <ContentControl Grid.Row="1" Grid.Column="0"
-                        Content="{Binding CurrentView}" />
+                        Content="{Binding CurrentView}" >
+            <ContentControl.DataTemplates>
+                <DataTemplate DataType="{x:Type vm:ArchiveViewModel}">
+                    <view:Archive />
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:ClisheViewModel}">
+                    <view:Clishe />
+                </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:SilkViewModel}">
+                    <view:Silk />
+                </DataTemplate>
+            </ContentControl.DataTemplates>
+        </ContentControl>
+        
     </Grid>
 </Window>

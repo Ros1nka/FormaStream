@@ -26,61 +26,7 @@ namespace FormaStream.Shell.ViewModels.TreeNodes
         partial void OnIsModifiedChanged(bool value) => 
             ModifiedChanged?.Invoke(this, EventArgs.Empty);
         
-        // Рекурсивно раскрыть/свернуть этот узел и всех детей
-        public void SetExpandedRecursive(bool expand)
-        {
-            IsExpanded = expand;
-            foreach (var child in Children)
-                child.SetExpandedRecursive(expand);
-        }
-
-        // Раскрыть только узлы на заданном уровне (уровень 0 = корень)
-        public void ExpandVariantsRecursive(TreeNode node, int level)
-        {
-            if (level == 0)
-                node.IsExpanded = true;
-        }
         
-        public void RemoveAndClean(AvaloniaList<TreeNode> rootCollection)
-        {
-            Parent?.Children.Remove(this);
-
-            var current = Parent;
-
-            while (current != null)
-            {
-                if (current.Children.Count > 0)
-                    break;
-
-                var nextParent = current.Parent;
-
-                if (nextParent == null)
-                {
-                    rootCollection.Remove(current);
-                    break;
-                }
-
-                // Иначе удаляем текущий пустой узел из детей его родителя
-                nextParent.Children.Remove(current);
-                current = nextParent; // Поднимаемся на уровень выше
-            }
-        }
-
-        // Поиск узла по файлу (рекурсивно)
-        public FileNode? FindFileNode(FileItem file)
-        {
-            if (this is FileNode fn && fn.SourceData == file)
-                return fn;
-
-            foreach (var child in Children)
-            {
-                var found = child.FindFileNode(file);
-                if (found != null) return found;
-            }
-
-            return null;
-        }
-
         // Хранилище оригинальных значений для отката
         private Dictionary<string, object> _originalValues = new();
 

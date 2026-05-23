@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,7 @@ using Dapper;
 using FormaStream.Core.Interfaces;
 using Microsoft.Data.Sqlite;
 using FormaStream.Core.Models;
+using FormaStream.Core.Models.DTO;
 
 namespace FormaStream.Infrastructure.Data;
 
@@ -101,7 +103,7 @@ public class DbRepository(string connectionString) : IDbRepository
                     .Select(f => new
                     {
                         date = DateTime.UtcNow.ToString("o"),
-                        file = f.Filename,
+                        file = Path.GetFileName(f.Filename),
                         source = "archiving"
                     })
                     .Cast<object>() // приводим к object для совместимости с интерфейсом
@@ -147,7 +149,7 @@ public class DbRepository(string connectionString) : IDbRepository
                     var fileParams = variant.Files.Select(f => new
                     {
                         VariantId = variantId,
-                        Filename = f.Filename,
+                        Filename = Path.GetFileName(f.Filename),
                         Separation = f.Separation
                     });
 
@@ -244,9 +246,9 @@ public class DbRepository(string connectionString) : IDbRepository
             try
             {
                 var translits = JsonSerializer.Deserialize<List<string>>(json, JsonOpts);
-                
+
                 if (translits == null || translits.Count == 0) continue;
-                
+
                 foreach (var t in translits.Where(t => !string.IsNullOrWhiteSpace(t)))
                 {
                     if (!cache.ContainsKey(t))
@@ -307,5 +309,85 @@ public class DbRepository(string connectionString) : IDbRepository
         {
             return [];
         }
+    }
+
+  
+    // 🔹 Вспомогательный метод для открытия соединения
+    private async Task<SqliteConnection> OpenConnectionAsync()
+    {
+        var connection = new SqliteConnection(connectionString);
+        await connection.OpenAsync();
+        return connection;
+    }
+
+
+    public async Task<int> CreateWorkSessionAsync(string sessionDate, string shift, string employeeShift,
+        string workFileName, string polymerType, string sizeSpec,
+        string variantNumber, string orderNumber, string clientName,
+        string separation, string fileHistory)
+    {
+        await using var connection = await OpenConnectionAsync();
+        
+        var sql = @"
+            INSERT INTO WorkSessions 
+            (SessionDate, Shift, EmployeeShift, PolymerType, SizeSpec, WorkFileName,
+             VariantNumber, OrderNumber, ClientName, Separation, FileHistoryJson)
+            VALUES (@SessionDate, @Shift, @EmployeeShift, @PolymerType, @SizeSpec, @WorkFileName,
+                    @VariantNumber, @OrderNumber, @ClientName, @Separation,@FileHistory)
+            RETURNING Id;";
+        
+        return await connection.QueryFirstOrDefaultAsync<int>(sql, new
+        {
+            SessionDate = sessionDate,
+            Shift = shift,
+            EmployeeShift = employeeShift,
+            PolymerType = polymerType,
+            SizeSpec = sizeSpec,
+            WorkFileName = workFileName,
+            VariantNumber = variantNumber,
+            OrderNumber = orderNumber,
+            ClientName = clientName,
+            Separation = separation,
+            FileHistory = fileHistory
+        });
+    }
+
+    // 🔹 Пример метода чтения сессий
+    public async Task<IEnumerable<WorkSessionDto>> GetWorkSessionsAsync(
+        DateTime? fromDate = null, DateTime? toDate = null, 
+        string? clientName = null, string? variantNumber = null)
+    {
+        await using var connection = await OpenConnectionAsync();
+        
+        var sql = @"SELECT Id, SessionDate, Shift, EmployeeShift, PolymerType, SizeSpec, WorkFileName, 
+                           VariantNumber, OrderNumber, ClientName, CreatedAt, Separation
+                    FROM WorkSessions WHERE 1=1";
+        
+        var parameters = new DynamicParameters();
+        
+        if (fromDate.HasValue) 
+        { 
+            sql += " AND date(SessionDate) >= date(@FromDate)"; 
+            parameters.Add("FromDate", fromDate.Value.ToString("dd.MM.yyyy")); 
+        }
+        if (toDate.HasValue) 
+        { 
+            sql += " AND date(SessionDate) <= date(@ToDate)"; 
+            parameters.Add("ToDate", toDate.Value.ToString("dd.MM.yyyy")); 
+        }
+        if (!string.IsNullOrWhiteSpace(clientName)) 
+        { 
+            sql += " AND ClientName LIKE @ClientName"; 
+            parameters.Add("ClientName", $"%{clientName}%"); 
+        }
+        if (!string.IsNullOrWhiteSpace(variantNumber)) 
+        { 
+            sql += " AND VariantNumber = @VariantNumber"; 
+            parameters.Add("VariantNumber", variantNumber); 
+        }
+        
+        sql += " ORDER BY CreatedAt DESC";
+        
+        return await connection.QueryAsync<WorkSessionDto>(sql, parameters);
     }
 }

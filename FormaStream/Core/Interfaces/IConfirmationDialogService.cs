@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using FormaStream.Shell.View;
+using FormaStream.Shell.Views;
 
 namespace FormaStream.Core.Interfaces;
 

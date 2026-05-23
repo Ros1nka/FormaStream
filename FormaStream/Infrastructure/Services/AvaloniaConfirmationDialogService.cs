@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using FormaStream.Core.Interfaces;
-using FormaStream.Shell.View;
+using FormaStream.Shell.Views;
 
 namespace FormaStream.Infrastructure.Services;
 

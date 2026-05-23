@@ -3,7 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Input;
 
-namespace FormaStream.Shell.View;
+namespace FormaStream.Shell.Views;
 
 public enum ConfirmationButtons { Ok, OkCancel, YesNo, YesNoCancel }
 public enum ConfirmationIcon { None, Question, Warning, Error, Information, Success }

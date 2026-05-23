@@ -50,11 +50,9 @@ public class FileParserService(IDbRepository dbRepository) : IFileParserService
     {
         var parts = SplitFilename(filepath);
 
-        //clientName: await ExtractClientNameAsync(Path.GetFileName(filepath)),
         return new FileItem
         (
-            filename: Path.GetFileName(filepath),
-            filePath: Path.GetDirectoryName(filepath) ?? string.Empty,
+            filename: filepath,
             orderNumber: ExtractOrderNumber(parts),
             variantNumber: ExtractArticle(parts),
             clientNameTranslit: ExtractClientNameTranslit(parts, Path.GetFileName(filepath)),

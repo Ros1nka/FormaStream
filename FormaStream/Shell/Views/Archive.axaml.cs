@@ -1,9 +1,12 @@
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using FormaStream.Shell.ViewModels;
 using FormaStream.Shell.ViewModels.TreeNodes;
 
-namespace FormaStream.Shell.View;
+namespace FormaStream.Shell.Views;
 
 public partial class Archive : UserControl
 {
@@ -18,7 +21,7 @@ public partial class Archive : UserControl
         if (e.Key == Key.Enter && sender is TextBox tbEn)
         {
             e.Handled = true;
-            
+
             if (tbEn.DataContext is TreeNode node)
                 node.ConfirmChanges();
 
