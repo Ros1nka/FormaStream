@@ -28,7 +28,7 @@ public partial class ArchiveViewModel : ViewModelBase
     private string _sourceFolder = string.Empty;
 
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
-    private string _targetFolder = string.Empty;
+    private string _archivePath = string.Empty;
 
     [ObservableProperty] [NotifyCanExecuteChangedFor(nameof(ArchivingCommand))]
     private ObservableCollection<Variant> _selectedVariants = [];
@@ -50,7 +50,8 @@ public partial class ArchiveViewModel : ViewModelBase
     public AvaloniaList<TreeNode> TreeNodes { get; } = [];
     
     // Свойство для сообщения о статусе папки
-    [ObservableProperty] private partial string _folderStatusText = string.Empty;
+    [ObservableProperty] private string _folderStatusText = string.Empty;
+    
     // Кэш последнего отслеживаемого пути (защита от лишних перезапусков)
     private string _currentWatchPath = string.Empty;
 
@@ -89,6 +90,9 @@ public partial class ArchiveViewModel : ViewModelBase
         get => _isFolderExist;
         private set => SetProperty(ref _isFolderExist, value);
     }
+    
+    partial void OnArchivePathChanged(string value) => RefreshTargetFolderWatcher();
+    partial void OnIsFullPathChanged(bool value) => RefreshTargetFolderWatcher();
 
     public TreeNode? SelectedNode
     {
@@ -126,6 +130,8 @@ public partial class ArchiveViewModel : ViewModelBase
                     SelectedFiles.Add(fileNode.SourceData);
                     UpdateItemInfo(fileNode.SourceData);
                 }
+                
+                RefreshTargetFolderWatcher();
             }
         }
     }
@@ -139,7 +145,6 @@ public partial class ArchiveViewModel : ViewModelBase
         if (string.IsNullOrEmpty(selectedPath)) return;
 
         SourceFolder = selectedPath;
-        TargetFolder = selectedPath;
         IsProcessing = true;
 
         await LoadTreeFromPathAsync(SourceFolder);
@@ -217,17 +222,57 @@ public partial class ArchiveViewModel : ViewModelBase
             ArchivingCommand?.NotifyCanExecuteChanged();
     }
 
+    private void RefreshTargetFolderWatcher()
+    {
+        if (SelectedVariants.Count > 1)
+        {
+            FolderStatusText = $"Показан путь для первого вида: {SelectedVariants.First().VariantNumber}";
+        }
+        
+        var newPath = SelectTargetPath(this.SelectedVariants.First().ClientName);
+        
+        // 2. Если путь не изменился — ничего не делаем (защита от спама при кликах)
+        if (newPath == _currentWatchPath) return;
+        
+        _currentWatchPath = newPath;
+        
+        // 3. Останавливаем старый таймер и очищаем список
+        StopFolderWatcher();
+        FlatFileList.Clear();
+        
+        // 5. Проверка существования (в фоне, чтобы не морозить UI на сетевых путях)
+        Task.Run(() =>
+        {
+            bool exists = Directory.Exists(newPath);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                // Если за время проверки путь снова изменился — игнорируем результат
+                if (newPath != _currentWatchPath) return;
+
+                if (exists)
+                {
+                    FolderStatusText = string.Empty; // Скрываем статус, показываем файлы
+                    StartFolderWatcher(newPath);     // Запускаем таймер
+                }
+                else
+                {
+                    FolderStatusText = $"📁 Папка не найдена и будет создана: {newPath}";
+                }
+            });
+        });
+    }
+    
     // 🔹 Запуск слежения
     public void StartFolderWatcher(string path)
     {
         StopFolderWatcher();
         if (!Directory.Exists(path)) return;
-
+    
         _watcherCts = new CancellationTokenSource();
         _folderWatcher.StartAsync(path, OnFilesChanged, TimeSpan.FromSeconds(2), _watcherCts.Token);
     }
-
-    // 🔹 Остановка слежения (вызывать при уходе со страницы или смене папки)
+    
+    // Остановка слежения (вызывать при уходе со страницы или смене папки)
     public void StopFolderWatcher()
     {
         _watcherCts?.Cancel();
@@ -235,8 +280,8 @@ public partial class ArchiveViewModel : ViewModelBase
         _folderWatcher.Stop();
         FlatFileList.Clear();
     }
-
-    // 🔹 Callback от сервиса слежения (выполняется в фоновом потоке)
+    
+    // Callback от сервиса слежения (выполняется в фоновом потоке)
     private void OnFilesChanged(IReadOnlyList<string> newFiles)
     {
         // Обновляем ТОЛЬКО в UI-потоке
@@ -245,11 +290,11 @@ public partial class ArchiveViewModel : ViewModelBase
             // Умная синхронизация без мерцания (удаляем исчезнувшие, добавляем новые)
             var currentSet = new HashSet<string>(FlatFileList, StringComparer.OrdinalIgnoreCase);
             var newSet = new HashSet<string>(newFiles, StringComparer.OrdinalIgnoreCase);
-
+    
             for (int i = FlatFileList.Count - 1; i >= 0; i--)
                 if (!newSet.Contains(FlatFileList[i]))
                     FlatFileList.RemoveAt(i);
-
+    
             foreach (var f in newFiles)
                 if (!currentSet.Contains(f))
                     FlatFileList.Add(f);
@@ -257,25 +302,25 @@ public partial class ArchiveViewModel : ViewModelBase
     }
 
 
-    private bool CanSelectTargetFolder() => !IsProcessing;
+    private bool CanSelectArchivePath() => !IsProcessing;
 
-    [RelayCommand(CanExecute = nameof(CanSelectTargetFolder))]
-    private async Task SelectTargetFolderAsync()
+    [RelayCommand(CanExecute = nameof(CanSelectArchivePath))]
+    private async Task SelectArchivePathAsync()
     {
         var selectedPath = await _fs.FolderPicker.PickFolderAsync(SourceFolder, "Выберите целевую папку");
 
         if (!string.IsNullOrEmpty(selectedPath))
         {
-            TargetFolder = selectedPath;
+            ArchivePath = selectedPath;
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanSelectTargetFolder))]
-    public void SetTargetFolderOnArchive()
+    [RelayCommand(CanExecute = nameof(CanSelectArchivePath))]
+    public void SetArchivePathOnArchive()
     {
         //TODO
-        //TargetFolder = @"\\server\share";
-        TargetFolder = @"Z:\10 ARCHIVE\Klishe\По номерам макетов";
+        //ArchivePath = @"\\server\share";
+        ArchivePath = @"Z:\10 ARCHIVE\Klishe\По номерам макетов";
     }
 
 
@@ -296,7 +341,7 @@ public partial class ArchiveViewModel : ViewModelBase
 
     private bool CanArchiving() =>
         !string.IsNullOrEmpty(SourceFolder) &&
-        !string.IsNullOrEmpty(TargetFolder) &&
+        !string.IsNullOrEmpty(ArchivePath) &&
         SelectedVariants.Count > 0 &&
         !IsProcessing &&
         !HasUnconfirmedChanges();
@@ -333,15 +378,7 @@ public partial class ArchiveViewModel : ViewModelBase
             {
                 foreach (var variant in filesToArchive.Keys)
                 {
-                    // Проверяем имя на безопасность
-                    safeClientDir = SanitizeForZip(filesToArchive[variant].First().ClientName);
-
-                    // Формируем целевой путь
-                    var targetDir = IsFullPath
-                        ? Path.Combine(TargetFolder, safeClientDir)
-                        : Path.Combine(TargetFolder);
-
-                    var variantDir = Path.Combine(targetDir, variant);
+                    var variantDir = Path.Combine(SelectTargetPath(filesToArchive[variant].First().ClientName), variant);
 
                     //Создаём папку
                     if (!Directory.Exists(variantDir))
@@ -432,6 +469,19 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
+    private string SelectTargetPath(string clientName)
+    {
+        // Проверяем имя на безопасность
+        var safeClientName = SanitizeForZip(clientName);
+
+        // Формируем целевой путь
+        var targetPath = IsFullPath
+            ? Path.Combine(ArchivePath, safeClientName)
+            : Path.Combine(ArchivePath);
+
+        return targetPath;
+    }
+    
 
     // Символы, запрещённые в ZIP и критичные для Windows
     private static readonly HashSet<char> InvalidZipChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '\0'];
