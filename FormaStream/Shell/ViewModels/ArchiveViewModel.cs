@@ -364,6 +364,7 @@ public partial class ArchiveViewModel : ViewModelBase
             }
 
             // Сохраняем в БД (асинхронно, без блокировки UI)
+            // TODO! проверка на совпадение транслитов
             await _dbRepository.SaveVariantsAsync(SelectedVariants);
             _logger.Log("✓ База клиентов обновлена");
             _logger.Log("✓ Данные сохранены в базе");
