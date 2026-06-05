@@ -48,10 +48,10 @@ public partial class ArchiveViewModel : ViewModelBase
 
     private string _isFolderExist = string.Empty;
     public AvaloniaList<TreeNode> TreeNodes { get; } = [];
-    
+
     // Свойство для сообщения о статусе папки
     [ObservableProperty] private string _folderStatusText = string.Empty;
-    
+
     // Кэш последнего отслеживаемого пути (защита от лишних перезапусков)
     private string _currentWatchPath = string.Empty;
 
@@ -90,9 +90,18 @@ public partial class ArchiveViewModel : ViewModelBase
         get => _isFolderExist;
         private set => SetProperty(ref _isFolderExist, value);
     }
-    
+
     partial void OnArchivePathChanged(string value) => RefreshTargetFolderWatcher();
     partial void OnIsFullPathChanged(bool value) => RefreshTargetFolderWatcher();
+    
+    partial void OnSourceFolderChanged(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            StopFolderWatcher();
+            FlatFileList.Clear();
+        }
+    }
 
     public TreeNode? SelectedNode
     {
@@ -130,13 +139,21 @@ public partial class ArchiveViewModel : ViewModelBase
                     SelectedFiles.Add(fileNode.SourceData);
                     UpdateItemInfo(fileNode.SourceData);
                 }
-                
+
                 RefreshTargetFolderWatcher();
             }
         }
     }
 
+    private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TreeNode.IsExpanded) or nameof(TreeNode.IsSelected))
+            ArchivingCommand?.NotifyCanExecuteChanged();
+    }
 
+    /// <summary>
+    /// Работа с деревом
+    /// </summary>
     [RelayCommand]
     private async Task OpenSourceFolderAsync()
     {
@@ -195,7 +212,6 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
-
     private void SubscribeToNodeChanges(TreeNode node)
     {
         // Подписываемся на изменение любого свойства узла
@@ -216,92 +232,9 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
-    private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(TreeNode.IsExpanded) or nameof(TreeNode.IsSelected))
-            ArchivingCommand?.NotifyCanExecuteChanged();
-    }
-
-    private void RefreshTargetFolderWatcher()
-    {
-        if (SelectedVariants.Count > 1)
-        {
-            FolderStatusText = $"Показан путь для первого вида: {SelectedVariants.First().VariantNumber}";
-        }
-        
-        var newPath = SelectTargetPath(this.SelectedVariants.First().ClientName);
-        
-        // 2. Если путь не изменился — ничего не делаем (защита от спама при кликах)
-        if (newPath == _currentWatchPath) return;
-        
-        _currentWatchPath = newPath;
-        
-        // 3. Останавливаем старый таймер и очищаем список
-        StopFolderWatcher();
-        FlatFileList.Clear();
-        
-        // 5. Проверка существования (в фоне, чтобы не морозить UI на сетевых путях)
-        Task.Run(() =>
-        {
-            bool exists = Directory.Exists(newPath);
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                // Если за время проверки путь снова изменился — игнорируем результат
-                if (newPath != _currentWatchPath) return;
-
-                if (exists)
-                {
-                    FolderStatusText = string.Empty; // Скрываем статус, показываем файлы
-                    StartFolderWatcher(newPath);     // Запускаем таймер
-                }
-                else
-                {
-                    FolderStatusText = $"📁 Папка не найдена и будет создана: {newPath}";
-                }
-            });
-        });
-    }
-    
-    // 🔹 Запуск слежения
-    public void StartFolderWatcher(string path)
-    {
-        StopFolderWatcher();
-        if (!Directory.Exists(path)) return;
-    
-        _watcherCts = new CancellationTokenSource();
-        _folderWatcher.StartAsync(path, OnFilesChanged, TimeSpan.FromSeconds(2), _watcherCts.Token);
-    }
-    
-    // Остановка слежения (вызывать при уходе со страницы или смене папки)
-    public void StopFolderWatcher()
-    {
-        _watcherCts?.Cancel();
-        _watcherCts = null;
-        _folderWatcher.Stop();
-        FlatFileList.Clear();
-    }
-    
-    // Callback от сервиса слежения (выполняется в фоновом потоке)
-    private void OnFilesChanged(IReadOnlyList<string> newFiles)
-    {
-        // Обновляем ТОЛЬКО в UI-потоке
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            // Умная синхронизация без мерцания (удаляем исчезнувшие, добавляем новые)
-            var currentSet = new HashSet<string>(FlatFileList, StringComparer.OrdinalIgnoreCase);
-            var newSet = new HashSet<string>(newFiles, StringComparer.OrdinalIgnoreCase);
-    
-            for (int i = FlatFileList.Count - 1; i >= 0; i--)
-                if (!newSet.Contains(FlatFileList[i]))
-                    FlatFileList.RemoveAt(i);
-    
-            foreach (var f in newFiles)
-                if (!currentSet.Contains(f))
-                    FlatFileList.Add(f);
-        });
-    }
-
-
+    /// <summary>
+    /// Выбор пути назначения
+    /// </summary>
     private bool CanSelectArchivePath() => !IsProcessing;
 
     [RelayCommand(CanExecute = nameof(CanSelectArchivePath))]
@@ -323,6 +256,123 @@ public partial class ArchiveViewModel : ViewModelBase
         ArchivePath = @"Z:\10 ARCHIVE\Klishe\По номерам макетов";
     }
 
+    private string SelectTargetPath(string clientName)
+    {
+        // Проверяем имя на безопасность
+        var safeClientName = SanitizeForZip(clientName);
+
+        // Формируем целевой путь
+        var targetPath = IsFullPath
+            ? Path.Combine(ArchivePath, safeClientName)
+            : Path.Combine(ArchivePath);
+
+        return targetPath;
+    }
+
+
+    /// <summary>
+    /// Watcher
+    /// </summary>
+    private void RefreshTargetFolderWatcher()
+    {
+        if (SelectedVariants.Count == 0) return;
+
+        FolderStatusText = string.Empty;
+
+        if (SelectedVariants.Count > 1)
+        {
+            FolderStatusText = $"Показан путь для первого вида: {SelectedVariants.First().VariantNumber}";
+        }
+
+        var newPath = SelectTargetPath(SelectedVariants.First().ClientName);
+
+        // если путь не изменился - выходим (защита от спам-кликах)
+        if (newPath == _currentWatchPath) return;
+
+        _currentWatchPath = newPath;
+
+        // останавливаем старый таймер, очищаем список
+        StopFolderWatcher();
+        FlatFileList.Clear();
+
+        // проверка существования (фон, чтобы не морозить UI на сетевых путях)
+        Task.Run(() =>
+        {
+            bool exists = Directory.Exists(newPath);
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                // если за время проверки путь изменился - выходим
+                if (newPath != _currentWatchPath) return;
+
+                if (exists)
+                {
+                    FolderStatusText = string.Empty; // Скрываем статус, показываем файлы
+                    StartFolderWatcher(newPath); // Запускаем таймер
+                }
+                else
+                {
+                    if (FolderStatusText.Length != 0) FolderStatusText += $"\n";
+                    FolderStatusText += $"📁 Будет создана новая папка: {newPath}";
+                }
+            });
+        });
+    }
+
+    // запуск слежения
+    public void StartFolderWatcher(string path)
+    {
+        StopFolderWatcher();
+
+        if (!Directory.Exists(path)) return;
+
+        // токен отмены
+        _watcherCts = new CancellationTokenSource();
+
+        _folderWatcher.StartAsync(path, OnFilesChanged, TimeSpan.FromSeconds(2), _watcherCts.Token);
+    }
+
+    // Остановка слежения (вызывать при уходе со страницы или смене папки)
+    public void StopFolderWatcher()
+    {
+        _watcherCts?.Cancel();
+        _watcherCts = null;
+        _folderWatcher.Stop();
+        FlatFileList.Clear();
+    }
+
+    // Callback от сервиса слежения (фон)
+    private void OnFilesChanged(IReadOnlyList<string> newFiles)
+    {
+        try
+        {
+            // Обновляем ТОЛЬКО в UI-потоке
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                // Умная синхронизация без мерцания (удаляем исчезнувшие, добавляем новые)
+                var currentSet = new HashSet<string>(FlatFileList, StringComparer.OrdinalIgnoreCase);
+
+                var newSet = new HashSet<string>(newFiles, StringComparer.OrdinalIgnoreCase);
+
+                for (int i = FlatFileList.Count - 1; i >= 0; i--)
+                    if (!newSet.Contains(FlatFileList[i]))
+                        FlatFileList.RemoveAt(i);
+
+                foreach (var f in newFiles)
+                    if (!currentSet.Contains(f))
+                        FlatFileList.Add(f);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Log($"Ошибка обновления списка файлов: {ex.Message}", LogLevel.Error);
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
 
     // есть ли неподтверждённые изменения (рекурсия)
     private bool HasUnconfirmedChanges() => CheckNodeList(TreeNodes);
@@ -364,7 +414,6 @@ public partial class ArchiveViewModel : ViewModelBase
             }
 
             // Сохраняем в БД (асинхронно, без блокировки UI)
-            // TODO! проверка на совпадение транслитов
             await _dbRepository.SaveVariantsAsync(SelectedVariants);
             _logger.Log("✓ База клиентов обновлена");
             _logger.Log("✓ Данные сохранены в базе");
@@ -372,14 +421,15 @@ public partial class ArchiveViewModel : ViewModelBase
             var progressMax = filesToArchive.Values.Sum(v => v.Count);
             var currentProgress = 0;
 
-            var safeClientDir = string.Empty;
+            var logArchiveNames = string.Empty;
 
             // Фоновая работа с файлами. Await ждёт завершения, finally
             await Task.Run(() =>
             {
                 foreach (var variant in filesToArchive.Keys)
                 {
-                    var variantDir = Path.Combine(SelectTargetPath(filesToArchive[variant].First().ClientName), variant);
+                    var variantDir = Path.Combine(SelectTargetPath(filesToArchive[variant].First().ClientName),
+                        variant);
 
                     //Создаём папку
                     if (!Directory.Exists(variantDir))
@@ -399,6 +449,9 @@ public partial class ArchiveViewModel : ViewModelBase
                             ProgressPercent = (currentProgress * 100) / progressMax;
 
                             archive.CreateEntryFromFile(file.Filename, Path.GetFileName(file.Filename));
+
+                            if (logArchiveNames.Length != 0) logArchiveNames += $", ";
+                            logArchiveNames += $"{variant}.zip";
 
                             _logger.LogBatch([
                                 $"{currentProgress}/{progressMax}, добавляется {Path.GetFileNameWithoutExtension(file.Filename)}"
@@ -454,7 +507,7 @@ public partial class ArchiveViewModel : ViewModelBase
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 var text = IsYesArchiveDirection
-                    ? $"Архив создан: {safeClientDir}.zip\nФайлов: {progressMax}"
+                    ? $"Архив создан: {logArchiveNames}\nФайлов: {progressMax}"
                     : $"Перемещено файлов: {progressMax}";
                 _logger.Log(text);
             });
@@ -470,19 +523,6 @@ public partial class ArchiveViewModel : ViewModelBase
         }
     }
 
-    private string SelectTargetPath(string clientName)
-    {
-        // Проверяем имя на безопасность
-        var safeClientName = SanitizeForZip(clientName);
-
-        // Формируем целевой путь
-        var targetPath = IsFullPath
-            ? Path.Combine(ArchivePath, safeClientName)
-            : Path.Combine(ArchivePath);
-
-        return targetPath;
-    }
-    
 
     // Символы, запрещённые в ZIP и критичные для Windows
     private static readonly HashSet<char> InvalidZipChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '\0'];
