@@ -14,9 +14,8 @@
     </Design.DataContext>
     
     
-
     <!-- TreeView с файлами -->
-    <TreeView Grid.Row="1" Margin="10, 24"
+    <TreeView Margin="10, 24"
               ItemsSource="{Binding TreeNodes}"
               SelectedItem="{Binding SelectedNode}">
 
@@ -135,6 +134,4 @@
 
         </TreeView.DataTemplates>
     </TreeView>
-
-
 </UserControl>

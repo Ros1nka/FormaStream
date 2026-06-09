@@ -47,13 +47,6 @@ public partial class FolderBrowserView : UserControl
         }
     }
     
-    
-    private void CollectFiles(TreeNode node, List<FileNode> list)
-    {
-        if (node is FileNode fn) list.Add(fn);
-        foreach (var child in node.Children) CollectFiles(child, list);
-    }
-    
     private void FileNode_Tapped(object? sender, PointerPressedEventArgs e)
     {
         if (e.ClickCount != 2) return; // Только двойной клик
@@ -62,7 +55,7 @@ public partial class FolderBrowserView : UserControl
         {
             if (DataContext is FolderBrowserViewModel vm)
             {
-                vm.AddFileForWorkListCommand.Execute(node);
+                vm.AddFileCommand.Execute(node);
             }
         }
     

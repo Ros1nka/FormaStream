@@ -20,10 +20,12 @@ public class ExplorerHelper : IExplorerHelper
     private static extern int SHOpenFolderAndSelectItems(
         IntPtr pidlFolder, uint cild, IntPtr[] apidl, uint dwFlags);
 
-    public void OpenAndSelectFiles(string folderPath, IEnumerable<string> filePaths)
+    public void OpenAndSelectFiles(string folderPath, IEnumerable<string>? filePaths)
     {
+        filePaths ??= [];
+        
         var files = filePaths
-            .Where(p => File.Exists(p))
+            .Where(File.Exists)
             .Select(Path.GetFullPath)
             .Distinct()
             .ToArray();

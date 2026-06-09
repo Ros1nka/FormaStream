@@ -237,7 +237,7 @@
                                ToolTip.Tip="{Binding SourceFolder}" />
 
                     <Button Grid.Row="1" Grid.Column="0" Width="100" Height="100" Margin="25, 5, 5, 5"
-                            Command="{Binding SelectTargetFolderCommand}"
+                            Command="{Binding SelectArchivePathCommand}"
                             CornerRadius="12" VerticalContentAlignment="Center" FontWeight="SemiBold"
                             Foreground="AliceBlue">
                         <TextBlock Text="Целевая папка" TextWrapping="Wrap"> </TextBlock>
@@ -247,15 +247,14 @@
 
                         <Button Width="100" Height="20" Margin="25, 15, 5, 40" Padding="2"
                                  HorizontalAlignment="Right" HorizontalContentAlignment="Center"
-                                 Command="{Binding SetTargetFolderOnArchiveCommand}"> 
+                                 Command="{Binding SetArchivePathOnArchiveCommand}"> 
                             <TextBlock Text="Установить на Архив" FontSize="9" Foreground="AliceBlue"/>
                         </Button>
 
-                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                   Text="{Binding TargetFolder}"
+                        <TextBlock Text="{Binding ArchivePath}"
                                    TextTrimming="CharacterEllipsis"
                                    VerticalAlignment="Center" TextWrapping="Wrap"
-                                   ToolTip.Tip="{Binding TargetFolder}" />
+                                   ToolTip.Tip="{Binding ArchivePath}" />
                     </StackPanel>
 
                     <Button Grid.Row="2" Grid.Column="0" Width="100" Height="100" Margin="25, 5, 5, 5"

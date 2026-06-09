@@ -22,7 +22,7 @@ public class UiLogger : IUiLogger
 
     public void Log(string message, LogLevel level = LogLevel.Information)
     {
-        FlushBuffer(); // 🔹 Сначала сбрасываем буфер
+        FlushBuffer(); // Сначала сбрасываем буфер
     
         Dispatch(() =>
         {
@@ -38,6 +38,7 @@ public class UiLogger : IUiLogger
         });
     }
 
+    // Очередь сообщений, если много. Через буфер
     public void LogBatch(IEnumerable<string> messages)
     {
         // Кладём сообщения в очередь, без вызова UI

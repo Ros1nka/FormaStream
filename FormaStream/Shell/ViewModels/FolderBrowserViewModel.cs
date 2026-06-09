@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -17,32 +13,30 @@ namespace FormaStream.Shell.ViewModels;
 public partial class FolderBrowserViewModel : ViewModelBase
 {
     [ObservableProperty] private string _sourceFolder = string.Empty;
-    [ObservableProperty] private ObservableCollection<Variant> _selectedVariants = [];
-    [ObservableProperty] private List<FileItem> _selectedFiles = [];
     [ObservableProperty] private bool _isProcessing;
+    [ObservableProperty] private AvaloniaList<FileItem> _selectedFiles = [];
+    [ObservableProperty] private FileItem? _selectedFile;
 
     private readonly IFileSystemServices _fs;
     private readonly ITreeViewOperationsService _treeViewOps;
     private readonly IUiLogger _logger;
+    
+    [ObservableProperty] private string _panelName;
+    [ObservableProperty] private AvaloniaList<TreeNode> _treeNodes = [];
 
-
-    public string PanelName { get; }
-    public AvaloniaList<TreeNode> TreeNodes { get; } = [];
-
-    public FolderBrowserViewModel(string? name,
+    public FolderBrowserViewModel(
+        string name,
         IFileSystemServices fileService,
         IUiLogger logger,
-        ITreeViewOperationsService treeViewOps)
+        ITreeViewOperationsService treeViewOps,
+        AvaloniaList<FileItem> sharedSelectedFile)
     {
         _fs = fileService;
         _logger = logger;
         _treeViewOps = treeViewOps;
 
         PanelName = name;
-
-        // подписываемся на CollectionChanged
-        // _selectedVariants.CollectionChanged += (_, _) =>
-        //     ArchivingCommand?.NotifyCanExecuteChanged();
+        SelectedFiles = sharedSelectedFile;
     }
 
     public TreeNode? SelectedNode
@@ -52,52 +46,57 @@ public partial class FolderBrowserViewModel : ViewModelBase
         {
             if (SetProperty(ref field, value))
             {
-                if (value is VariantNode variantNode)
-                {
-                    SelectedVariants.Clear();
-                    SelectedFiles.Clear();
-
-                    SelectedVariants.Add(variantNode.SourceData);
-                }
-
-                if (value is OrderNode orderNode)
-                {
-                    SelectedVariants.Clear();
-                    SelectedFiles.Clear();
-
-                    foreach (var child in orderNode.Children)
-                    {
-                        foreach (var variant in orderNode.SourceData.Variants)
-                        {
-                            if (child.SourceData == variant)
-                                SelectedVariants.Add(variant);
-                        }
-                    }
-                }
-
                 if (value is FileNode fileNode)
                 {
-                    SelectedVariants.Clear();
-                    SelectedFiles.Clear();
-                    SelectedFiles.Add(fileNode.SourceData);
+                    SelectedFile = fileNode.SourceData;
                 }
             }
         }
     }
 
     [RelayCommand]
-    private async Task OpenFolderAsync()
+    public void AddFile()
     {
-        var selectedPath = await _fs.FolderPicker.PickFolderAsync(null, "Выберите папку");
+        if (SelectedFile is null) return;
 
+        if (!SelectedFiles.Contains(SelectedFile))
+            SelectedFiles.Add(SelectedFile);
+    }
+
+    [RelayCommand]
+    public void RemoveFile()
+    {
+        if (SelectedFile is null) return;
+        
+        if (SelectedFiles.Contains(SelectedFile))
+            SelectedFiles.Remove(SelectedFile);
+    }
+
+    [RelayCommand]
+    public async Task OpenFolderAsync()
+    {
+        SourceFolder = await _fs.FolderPicker.PickFolderAsync(null, "Выберите папку") ?? string.Empty;
+
+        if (SourceFolder.Length == 0) return;
+
+        await LoadTreeFromPathAsync(SourceFolder);
+    }
+
+    public async Task LoadTreeFromPathAsync(string path)
+    {
+        IsProcessing = true;
+        _logger.Log("Загрузка структуры...");
+        
         try
         {
-            var nodes = await _treeViewOps.LoadTreeAsync(selectedPath);
+            var nodes = await _treeViewOps.LoadTreeAsync(SourceFolder);
 
             await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
                 TreeNodes.Clear();
                 TreeNodes.AddRange(nodes);
+
+                _logger.Log($"Папка {SourceFolder} открыта");
             });
         }
         catch (Exception ex)
@@ -107,71 +106,7 @@ public partial class FolderBrowserViewModel : ViewModelBase
         finally
         {
             IsProcessing = false;
-        }
-    }
-    
-    public async Task LoadTreeFromPathAsync(string folderPath)
-    {
-        if (!Directory.Exists(folderPath)) return;
-
-        IsProcessing = true;
-        _logger.Log("Загрузка структуры...");
-
-        try
-        {
-            // отписываемся от страых узлов
-            // UnsubscribeFromTree(TreeNodes);
-
-            // загружаем новые данные (фон)
-            var newNodes = await _treeViewOps.LoadTreeAsync(folderPath);
-
-            // Обновляем UI + подписываемся на НОВЫЕ узлы (UI-поток)
-            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                TreeNodes.Clear();
-                TreeNodes.AddRange(newNodes);
-
-                // foreach (var node in TreeNodes)
-                //     SubscribeToNodeChanges(node);
-            });
-
-            _logger.Log($"Загружено {newNodes.Count} заказов");
-        }
-        catch (Exception ex)
-        {
-            _logger.Log($"[LoadTree] {ex}", LogLevel.Error);
-        }
-        finally
-        {
-            IsProcessing = false;
             _logger.Log("Загрузка завершена");
         }
-    }
-    
-    
-    [ObservableProperty] 
-    private ObservableCollection<FileItem> _fileForWorkList = [];
-    
-    [RelayCommand]
-    public void AddFileForWorkList(TreeNode node)
-    {
-        if (node is not FileNode fileNode) return;
-    
-        var fileItem = fileNode.SourceData;
-        if (fileItem == null) return;
-        
-        if (FileForWorkList.Any(f => 
-                f.Filename == fileItem.Filename)) 
-            return;
-
-        
-        FileForWorkList.Add(fileItem);
-    }
-    
-    [RelayCommand]
-    private void RemoveFromFileEditList(FileItem item)
-    {
-        if (item != null && FileForWorkList.Contains(item))
-            FileForWorkList.Remove(item);
     }
 }

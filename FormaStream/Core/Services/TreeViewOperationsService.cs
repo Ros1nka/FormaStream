@@ -4,9 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Collections;
-using CommunityToolkit.Mvvm.Input;
 using FormaStream.Core.Interfaces;
-using FormaStream.Infrastructure.Services;
 using FormaStream.Shell.ViewModels.TreeNodes;
 using Microsoft.Extensions.Logging;
 
@@ -161,7 +159,7 @@ public class TreeViewOperationsService : ITreeViewOperationsService
 
         var current = nodeToRemove.Parent;
 
-        // Поднимаемся вверх, удаляя пустых родителей
+        // Поднимаемся, удаляя пустых родителей
         while (current != null && current.Children.Count == 0)
         {
             var nextParent = current.Parent;
@@ -206,7 +204,7 @@ public class TreeViewOperationsService : ITreeViewOperationsService
         return null;
     }
 
-    private FileNode? FindFileNodeRecursive(TreeNode node, string normalizedPath)
+    private static FileNode? FindFileNodeRecursive(TreeNode node, string normalizedPath)
     {
         if (node is FileNode fn && fn.SourceData != null)
         {

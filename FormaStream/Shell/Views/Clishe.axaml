@@ -3,17 +3,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:FormaStream.Shell.ViewModels"
-             xmlns:treeNodes="clr-namespace:FormaStream.Shell.ViewModels.TreeNodes"
              xmlns:views="clr-namespace:FormaStream.Shell.Views"
-             xmlns:converters="clr-namespace:FormaStream.Infrastructure.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="FormaStream.Shell.Views.Clishe"
              x:DataType="viewModels:ClisheViewModel"
-             Focusable="True">
+             x:Name="UserControl">
 
     <Design.DataContext>
         <viewModels:ClisheViewModel />
-    </Design.DataContext>
+    </Design.DataContext> 
 
     <UserControl.Styles>
         <!-- Базовый стиль -->
@@ -43,7 +41,7 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Grid.Row="0" Background="BurlyWood" CornerRadius="12" Margin="8, 8, 1, 8">
-                <Grid Grid.Column="0" Grid.Row="0" Margin="5">
+                <Grid Margin="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="6*" MinHeight="200" />
                         <RowDefinition Height="Auto" />
@@ -168,7 +166,7 @@
                         <StackPanel Grid.Row="3" Margin="8" Spacing="8">
                             <TextBlock Text="Папка работы:" FontWeight="Bold" FontSize="11" />
 
-                            <TextBox Text="{Binding WorkSubfolderPath, Mode=OneWay}"
+                            <TextBox Text="{Binding WorkFolderPath, Mode=OneWay}"
                                      IsReadOnly="True"
                                      FontFamily="Consolas"
                                      FontSize="9"
@@ -180,10 +178,9 @@
                                      TextWrapping="Wrap"
                                      MaxLines="2" />
 
-                            <Button Command="{Binding OpenWorkSubfolderCommand}"
-                                    IsEnabled="{Binding WorkSubfolderPath, Converter={StaticResource StringNotEmptyToBoolConverter}}"
+                            <Button Command="{Binding OpenWorkFolderCommand}"
                                     Background="#60A5FA" Padding="8,4" CornerRadius="4">
-                                <TextBlock Text="Открыть папку📂" Foreground="White" TextWrapping="Wrap"
+                                <TextBlock Text="Открыть📂" Foreground="White" TextWrapping="Wrap"
                                            FontWeight="Bold" FontSize="11">
                                 </TextBlock>
                             </Button>
@@ -233,9 +230,10 @@
 
 
                         <!-- Список файлов -->
-                        <Border x:Name="FileWorkListBorder" Grid.Row="1" DataContext="{Binding PanelViewer1}">
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0">
-                                <ItemsControl ItemsSource="{Binding FileForWorkList}">
+                        <!-- DataContext="{Binding PanelViewer1}" -->
+                        <Border x:Name="FileWorkListBorder" Grid.Row="1">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
+                                <ItemsControl ItemsSource="{Binding SelectedFiles}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel Orientation="Vertical" Spacing="0" />
@@ -314,14 +312,15 @@
                                                 <!-- Focusable="False" -->
                                                 <Button Grid.Column="5"
                                                         Content="✕"
-                                                        Command="{Binding #FileWorkListBorder.DataContext.RemoveFromFileEditListCommand}"
+                                                        Command="{Binding $parent[UserControl].DataContext.RemoveSelectedFileCommand, 
+                                          RelativeSource={RelativeSource AncestorType=views:Clishe}}"
                                                         CommandParameter="{Binding}"
                                                         Padding="0,2"
                                                         Margin="4,0,0,0"
                                                         Background="#FEE2E2"
                                                         Foreground="#991B1B"
                                                         CornerRadius="4" />
-                                                <!-- </Grid> -->
+                                                <!-- </Gr id> -->
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -336,7 +335,7 @@
 
                         <Grid Grid.Row="3" RowDefinitions="Auto, *">
                             <TextBox
-                                Text="{Binding GeneratedFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Text="{Binding GeneratedCdiFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                 IsReadOnly="True"
                                 FontFamily="Consolas"
                                 FontSize="12"

@@ -4,17 +4,12 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using Avalonia.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using FormaStream.Core.Interfaces;
 using FormaStream.Core.Models;
-using FormaStream.Core.Services;
-using FormaStream.Infrastructure.Services;
-using FormaStream.Shell.ViewModels.TreeNodes;
 using Microsoft.Extensions.Logging;
 
 namespace FormaStream.Shell.ViewModels;
@@ -28,26 +23,28 @@ public partial class ClisheViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<string> _employees = ["Баранова Н.В.", "Жуков С.В.", "Страхов Е.С."];
 
+    [ObservableProperty] private string _selectedShift;
     [ObservableProperty] private string _employeeShift;
     [ObservableProperty] private string _statusText;
-
 
     public FolderBrowserViewModel PanelViewer1 { get; }
     public FolderBrowserViewModel PanelViewer2 { get; }
     public FolderBrowserViewModel PanelViewer3 { get; }
 
-    [ObservableProperty] private ObservableCollection<string> _progressLog = new();
+    [ObservableProperty] private ObservableCollection<string> _progressLog = [];
     [ObservableProperty] private bool _isProcessing;
+    [ObservableProperty] private string _workFolderPath = @"d:\test\ToWork\";
+    [ObservableProperty] private AvaloniaList<FileItem> _selectedFiles = [];
 
-    private const string DefaultFolderPath = @"d:\test\";
-    public AvaloniaList<TreeNode> TreeNodes { get; } = [];
+    private const string DefaultFolder1Path = @"d:\test\1-14\";
+    private const string DefaultFolder2Path = @"d:\test\1-7\";
+    private const string DefaultFolder3Path = @"d:\test\ReWork\";
 
     private readonly IDbRepository _dbRepository;
     private readonly IFileSystemServices _fs;
     private readonly IUiLogger _logger;
     private readonly IProgress<string> _progress;
     private readonly ITreeViewOperationsService _treeViewOps;
-    [ObservableProperty] private string _selectedShift;
 
 
     public ClisheViewModel(IFileSystemServices fileSystemServices,
@@ -62,25 +59,23 @@ public partial class ClisheViewModel : ViewModelBase
         _logger = loggerFactory.Create(_progressLog, msg => StatusText = msg);
         _progress = new Progress<string>(msg => IsProcessingValue = msg);
 
-        PanelViewer1 = new FolderBrowserViewModel("1.14", _fs, _logger, treeViewSvc);
-        PanelViewer2 = new FolderBrowserViewModel("1.7", _fs, _logger, treeViewSvc);
-        PanelViewer3 = new FolderBrowserViewModel("Повтор", _fs, _logger, treeViewSvc);
+        PanelViewer1 = new FolderBrowserViewModel("1.14", _fs, _logger, treeViewSvc, SelectedFiles);
+        PanelViewer2 = new FolderBrowserViewModel("1.7", _fs, _logger, treeViewSvc, SelectedFiles);
+        PanelViewer3 = new FolderBrowserViewModel("Повтор", _fs, _logger, treeViewSvc, SelectedFiles);
 
-        // 🚀 Асинхронная загрузка по умолчанию при старте
-        _ = PanelViewer1.LoadTreeFromPathAsync(DefaultFolderPath);
-        _ = PanelViewer2.LoadTreeFromPathAsync(DefaultFolderPath);
-        _ = PanelViewer3.LoadTreeFromPathAsync(DefaultFolderPath);
+        // загрузка по умолчанию при старте
+        _ = PanelViewer1.LoadTreeFromPathAsync(DefaultFolder1Path);
+        _ = PanelViewer2.LoadTreeFromPathAsync(DefaultFolder2Path);
+        _ = PanelViewer3.LoadTreeFromPathAsync(DefaultFolder3Path);
 
-        PanelViewer1.FileForWorkList.CollectionChanged += (_, _) => UpdateGeneratedFileName();
+        SelectedFiles.CollectionChanged += (_, _) => UpdateGeneratedFileName();
     }
-
 
     // обновление строки статуса (последнее сообщение)
     private void UpdateStatusLine(string message)
     {
         StatusText = message;
     }
-
 
     [ObservableProperty] private bool _isShift1Selected = false;
     [ObservableProperty] private bool _isShift2Selected = false;
@@ -119,35 +114,30 @@ public partial class ClisheViewModel : ViewModelBase
         Debug.WriteLine($"Выбрано: {value}, поле ввода: {(IsArbitrarySizeEnabled ? "активно" : "заблокировано")}");
     }
 
-    [ObservableProperty] private string _generatedFileName = string.Empty;
-    [ObservableProperty] private string _workSubfolderPath = "InWork";
 
-    private void UpdateGeneratedFileName() =>
-        GeneratedFileName = GenerateWorkFileName();
+    /// <summary>
+    /// Генерация имени cdi.len файла
+    /// </summary>
+    [ObservableProperty] private string _generatedCdiFileName = string.Empty;
 
-    private string GenerateWorkFileName()
+    private void UpdateGeneratedFileName() => GeneratedCdiFileName = GenerateCdiFileName();
+
+    private string GenerateCdiFileName()
     {
-        GeneratedFileName = string.Empty;
+        if (SelectedFiles.Count == 0) return string.Empty;
 
-        var allWorkingFiles = new List<FileItem>();
-        CollectWorkingFiles(PanelViewer1, allWorkingFiles);
-        CollectWorkingFiles(PanelViewer2, allWorkingFiles);
-        CollectWorkingFiles(PanelViewer3, allWorkingFiles);
-
-        if (allWorkingFiles.Count == 0) return string.Empty;
-
-        var filesByVariant = allWorkingFiles.GroupBy(f => f.VariantNumber);
+        var filesByVariant = SelectedFiles.GroupBy(f => f.VariantNumber);
 
         var result = new List<string>();
 
         foreach (var group in filesByVariant)
         {
-            var variantNum = group.First().VariantNumber?.Trim() ?? "N_A";
+            var variantNum = group.First().VariantNumber;
 
-            // Собираем уникальные значения Separation, сортируем для консистентности
+            // Собираем уникальные значения Separation, сортируем
             var separations = group
                 .Where(f => !string.IsNullOrWhiteSpace(f.Separation))
-                .Select(f => f.Separation!.Trim())
+                .Select(f => f.Separation)
                 .Distinct()
                 .OrderBy(s => s)
                 .ToList();
@@ -155,10 +145,6 @@ public partial class ClisheViewModel : ViewModelBase
             var sepPart = separations.Count > 0
                 ? string.Join("-", separations)
                 : "N_A";
-
-            // Санитизация: убираем запрещённые символы для имени файла
-            var safeVariant = SanitizeFileName(variantNum);
-            var safeSep = SanitizeFileName(sepPart);
 
             result.Add($"{SanitizeFileName(variantNum)}-{SanitizeFileName(sepPart)}");
         }
@@ -196,13 +182,7 @@ public partial class ClisheViewModel : ViewModelBase
             return;
         }
 
-        // Собираем файлы из всех панелей (теперь это List<FileItem>)
-        var allWorkingFiles = new List<FileItem>();
-        CollectWorkingFiles(PanelViewer1, allWorkingFiles);
-        CollectWorkingFiles(PanelViewer2, allWorkingFiles);
-        CollectWorkingFiles(PanelViewer3, allWorkingFiles);
-
-        if (allWorkingFiles.Count == 0)
+        if (SelectedFiles.Count == 0)
         {
             StatusText = "⚠️ Добавьте файлы для работы";
             return;
@@ -216,7 +196,7 @@ public partial class ClisheViewModel : ViewModelBase
             var timestamp = DateTime.Now.ToString("dd.MM.yyyy ddd HH:mm:ss");
 
             // Группируем по вариантам (используем VariantNumber из FileItem)
-            var filesByVariant = allWorkingFiles.GroupBy(f => f.VariantNumber);
+            var filesByVariant = SelectedFiles.GroupBy(f => f.VariantNumber).ToArray();
 
             foreach (var group in filesByVariant)
             {
@@ -233,9 +213,9 @@ public partial class ClisheViewModel : ViewModelBase
                     sessionDate: timestamp,
                     shift: IsShift1Selected ? "Первая" : "Вторая",
                     employeeShift: EmployeeShift,
-                    workFileName: GeneratedFileName,
+                    workFileName: GeneratedCdiFileName,
                     polymerType: SelectedPolymer,
-                    sizeSpec: IsArbitrarySizeEnabled ? ArbitrarySizeValue : SelectedSize,
+                    sizeSpec: finalSize,
                     orderNumber: first.OrderNumber,
                     clientName: finalClientName,
                     variantNumber: first.VariantNumber,
@@ -247,23 +227,19 @@ public partial class ClisheViewModel : ViewModelBase
                 );
             }
 
-            _logger.Log($"✅ Задание сохранено: {filesByVariant.Count()} вида, {allWorkingFiles.Count} файлов");
+            _logger.Log($"✅ Задание сохранено: {filesByVariant.Length} видов, {SelectedFiles.Count} файлов");
 
-            // Базовая папка для работы
-            var baseWorkFolder =
-                Path.Combine(Path.GetDirectoryName(allWorkingFiles.First().Filename), WorkSubfolderPath);
+            await MoveFilesToWorkFolderAsync();
 
-            await MoveFilesToWorkSubfolderAsync(allWorkingFiles, baseWorkFolder);
+            // обновляем деревья, чтобы убрать перемещённые файлы
+            await RefreshTreeViewsAsync();
 
-            // 3. 🔹 Опционально: обновляем деревья, чтобы убрать перемещённые файлы из вида
-            await RefreshTreeViewsAsync(allWorkingFiles);
-
-            StatusText = $"✅ Задание сохранено, файлы перемещены в: {Path.GetFullPath(WorkSubfolderPath)}";
+            StatusText = $"✅ Задание сохранено, файлы перемещены в: {Path.GetFullPath(WorkFolderPath)}";
         }
         catch (Exception ex)
         {
             StatusText = $"❌ Ошибка: {ex.Message}";
-            _logger.Log($"[Start] {ex}", Microsoft.Extensions.Logging.LogLevel.Error);
+            _logger.Log($"[Start] {ex}", LogLevel.Error);
         }
         finally
         {
@@ -271,92 +247,74 @@ public partial class ClisheViewModel : ViewModelBase
         }
     }
 
-    // Хелпер для сбора файлов из панели
-    private void CollectWorkingFiles(FolderBrowserViewModel panel, List<FileItem> target)
+    private async Task MoveFilesToWorkFolderAsync()
     {
-        if (panel?.FileForWorkList != null)
-            target.AddRange(panel.FileForWorkList);
-    }
+        if (SelectedFiles.Count == 0) return;
 
-    private async Task MoveFilesToWorkSubfolderAsync(List<FileItem> files, string baseWorkFolder)
-    {
-        if (files.Count == 0) return;
-
-        var targetFolder = baseWorkFolder;
-        Directory.CreateDirectory(targetFolder);
-
-        WorkSubfolderPath = targetFolder;
+        if (!Directory.Exists(WorkFolderPath))
+            Directory.CreateDirectory(WorkFolderPath);
 
         var movedCount = 0;
-        foreach (var file in files)
+        foreach (var file in SelectedFiles)
         {
-            try
+            await Task.Run(() =>
             {
-                var sourcePath = Path.GetFullPath(file.Filename);
-                var fileName = Path.GetFileName(file.Filename);
-                var destPath = Path.Combine(targetFolder, fileName);
-
-                // 🔹 Если файл уже есть — добавляем суффикс времени
-                if (File.Exists(destPath))
+                try
                 {
-                    var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
-                    var ext = Path.GetExtension(fileName);
-                    var uniqueName = $"{nameWithoutExt}_{DateTime.Now:HHmmssfff}{ext}";
-                    destPath = Path.Combine(targetFolder, uniqueName);
+                    var sourcePath = Path.GetFullPath(file.Filename);
+                    var fileName = Path.GetFileName(file.Filename);
+                    var destPath = Path.Combine(WorkFolderPath, fileName);
+
+                    //  если файл уже есть — добавляем суффикс времени
+                    if (File.Exists(destPath))
+                    {
+                        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                        var ext = Path.GetExtension(fileName);
+                        var uniqueName = $"{nameWithoutExt}_{DateTime.Now:HHmmssfff}{ext}";
+                        destPath = Path.Combine(WorkFolderPath, uniqueName);
+                    }
+
+                    File.Move(sourcePath, destPath);
+                    movedCount++;
+
+                    _logger.Log($"[Move] {fileName} → {WorkFolderPath}", LogLevel.Debug);
                 }
-
-                File.Move(sourcePath, destPath);
-                movedCount++;
-
-                _logger.Log($"[Move] {fileName} → {targetFolder}", LogLevel.Debug);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log($"[Move Error] {file.Filename}: {ex.Message}", LogLevel.Warning);
-            }
+                catch (Exception ex)
+                {
+                    _logger.Log($"[Move Error] {file.Filename}: {ex.Message}", LogLevel.Warning);
+                }
+            });
         }
 
-        _logger.Log($"[Move] Перемещено файлов: {movedCount}/{files.Count}", LogLevel.Information);
+        _logger.Log($"[Move] Перемещено файлов: {movedCount}/{SelectedFiles.Count}");
     }
 
-    private async Task RefreshTreeViewsAsync(List<FileItem> movedFiles)
+    private async Task RefreshTreeViewsAsync()
     {
-        // 1. Очищаем списки работы
-        PanelViewer1.FileForWorkList.Clear();
-        PanelViewer2.FileForWorkList.Clear();
-        PanelViewer3.FileForWorkList.Clear();
+        // синхронизируем деревья
+        var movedPaths = SelectedFiles.Select(f => f.Filename).ToList();
 
-        // 2. 🔥 Синхронизируем деревья: удаляем перемещённые файлы из визуального дерева
-        var movedPaths = movedFiles.Select(f => f.Filename).ToList();
+        // синхронизируем каждую панель
+        await Task.Run(() => { _treeViewOps.SyncTreeAfterOperation(PanelViewer1.TreeNodes, movedPaths); });
+        await Task.Run(() => { _treeViewOps.SyncTreeAfterOperation(PanelViewer2.TreeNodes, movedPaths); });
+        await Task.Run(() => { _treeViewOps.SyncTreeAfterOperation(PanelViewer3.TreeNodes, movedPaths); });
 
-        // Синхронизируем каждую панель
-        _treeViewOps.SyncTreeAfterOperation((AvaloniaList<TreeNode>)PanelViewer1.TreeNodes, movedPaths);
-        _treeViewOps.SyncTreeAfterOperation((AvaloniaList<TreeNode>)PanelViewer2.TreeNodes, movedPaths);
-        _treeViewOps.SyncTreeAfterOperation((AvaloniaList<TreeNode>)PanelViewer3.TreeNodes, movedPaths);
+        SelectedFiles.Clear();
 
-        // 3. Обновляем генерируемое имя файла (опционально)
+        // обновляем генерируемое имя файла
         UpdateGeneratedFileName();
     }
 
     [RelayCommand]
-    private void OpenWorkSubfolder()
+    private void OpenWorkFolder()
     {
-        if (!string.IsNullOrWhiteSpace(WorkSubfolderPath) && Directory.Exists(WorkSubfolderPath))
-        {
-            try
-            {
-                if (OperatingSystem.IsWindows())
-                    Process.Start("explorer.exe", WorkSubfolderPath);
-                else if (OperatingSystem.IsMacOS())
-                    Process.Start("open", WorkSubfolderPath);
-                else if (OperatingSystem.IsLinux())
-                    Process.Start("xdg-open", WorkSubfolderPath);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log($"[OpenFolder] {ex.Message}", LogLevel.Warning);
-                StatusText = $"⚠️ Не удалось открыть папку: {ex.Message}";
-            }
-        }
+        _fs.ExplorerHelper.OpenAndSelectFiles(WorkFolderPath, null);
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedFile(FileItem file)
+    {
+        if (SelectedFiles.Contains(file))
+            SelectedFiles.Remove(file);
     }
 }

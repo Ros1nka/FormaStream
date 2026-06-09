@@ -4,5 +4,5 @@ namespace FormaStream.Core.Interfaces;
 
 public interface IExplorerHelper
 {
-    public void OpenAndSelectFiles(string folderPath, IEnumerable<string> filePaths);
+    public void OpenAndSelectFiles(string folderPath, IEnumerable<string>? filePaths);
 }
