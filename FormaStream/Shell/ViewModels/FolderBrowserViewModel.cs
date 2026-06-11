@@ -89,14 +89,14 @@ public partial class FolderBrowserViewModel : ViewModelBase
         
         try
         {
-            var nodes = await _treeViewOps.LoadTreeAsync(SourceFolder);
+            var nodes = await _treeViewOps.LoadTreeAsync(path);
 
             await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
                 TreeNodes.Clear();
                 TreeNodes.AddRange(nodes);
 
-                _logger.Log($"Папка {SourceFolder} открыта");
+                _logger.Log($"Папка {path} открыта");
             });
         }
         catch (Exception ex)
